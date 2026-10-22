@@ -189,7 +189,7 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
 <script>
 "use strict";
 // ---------------------------------------------------------------- impostazioni
-const VERSIONE = "1.0 (22 ott 2026)";
+const VERSIONE = "1.1 (22 ott 2026)";
 const CHIAVE_API = "AIzaSyA3eA9-4n6jc6llgXn805Pus54awLbTxn0";                                   // chiave API Google (solo Drive API, limitata a questo sito)
 const RADICE = "1Qss5yBi3WuEZ-LSkcJ1TjaKrd8QHeOuu";      // Cartografia_cond sul Drive (link pubblico, sola lettura)
 const INDICE = ["Estrazione_mappe", "_dati", "indice_img.csv"];
@@ -206,7 +206,18 @@ const PUO_SCRIVERE = typeof window.showDirectoryPicker === "function";
 // ---------------------------------------------------------------- Drive (chiave API: niente account)
 const elenchi = new Map();
 async function driveGet(url) {
-  const r = await fetch(url);
+  // Google a volte non risponde (file appena aggiornato sul Drive, troppi download insieme): il browser lo vede
+  // come "Failed to fetch". Si riprova fino a 4 volte con una pausa crescente.
+  let r = null, ultimo = null;
+  for (let i = 0; i < 4; i++) {
+    try {
+      r = await fetch(url, { cache: "no-store" });
+      if (r.ok || (r.status !== 429 && r.status < 500)) break;
+      ultimo = new Error("Drive: " + r.status);
+    } catch (e) { ultimo = e; r = null; }
+    if (i < 3) { if (typeof log === "function" && $("sez-av") && !$("sez-av").hidden) log("  Google non risponde, riprovo…"); await new Promise(ok => setTimeout(ok, 1500 * (i + 1))); }
+  }
+  if (!r) throw new Error("Google Drive non risponde (" + (ultimo ? ultimo.message : "rete") + "). Controlla la connessione e riprova fra qualche minuto.");
   if (!r.ok) {
     let m = ""; try { m = (await r.json()).error.message; } catch (e) {}
     throw new Error("Drive: " + r.status + (m ? " " + m : "") + (r.status === 403 ? " (chiave API o troppi download: riprova più tardi)" : ""));
