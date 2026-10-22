@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Carica Mappe</title>
+<meta name="description" content="Mappe CTRN 1:5000 per GPS Garmin dal Drive della protezione civile: scegli la zona, unisci i comuni, carica nel GPS.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: una colonna da campo (zona -> mappe scelte -> GPS -> avanzamento), stessa veste di Carica Mappe iPhone */
+:root {
+  --bg: #eef1f3; --fg: #1d2731; --muted: #5b6875; --line: #c9d1d8; --panel: #ffffff;
+  --accent: #e2620c; --accent-fg: #ffffff; --accent-soft: #fbe6d6;
+  --ok: #2f7d4f; --warn: #b4430b; --code: #e3e8ec; --bar: #d9dfe4;
+  --f-disp: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141a20; --fg: #e4e9ee; --muted: #93a1ad; --line: #2e3842; --panel: #1c242c;
+  --accent: #f07a2a; --accent-fg: #1a0e05; --accent-soft: #3a2414;
+  --ok: #5fbf86; --warn: #ff9a5c; --code: #24303a; --bar: #2a343e; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #141a20; --fg: #e4e9ee; --muted: #93a1ad; --line: #2e3842; --panel: #1c242c;
+  --accent: #f07a2a; --accent-fg: #1a0e05; --accent-soft: #3a2414;
+  --ok: #5fbf86; --warn: #ff9a5c; --code: #24303a; --bar: #2a343e; color-scheme: dark }
+
+* { box-sizing: border-box }
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px) }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.45 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 12px 40px }
+[hidden] { display: none !important }
+.wrap { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px }
+header { display: flex; flex-direction: column; gap: 2px; padding-top: 6px }
+h1 { font: 700 2rem/1.05 var(--f-disp); margin: 0; letter-spacing: .01em; text-wrap: balance }
+h1 span { color: var(--accent) }
+.sub { color: var(--muted); font-size: .92rem; margin: 0 }
+h2 { font: 600 .82rem/1 var(--f-disp); text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 0 0 10px }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0 }
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; color: var(--muted); min-width: 0 }
+select, input[type=search], input[type=number] { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line);
+  border-radius: 8px; padding: 10px; width: 100%; min-width: 0 }
+input[type=number] { text-align: center; font-family: var(--f-mono) }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+.stack { display: flex; flex-direction: column; gap: 10px }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden }
+.seg button { font: 600 .95rem/1 var(--f-disp); padding: 11px 4px; border: 0; background: var(--bg); color: var(--fg); cursor: pointer }
+.seg button + button { border-left: 1px solid var(--line) }
+.seg button[aria-pressed=true] { background: var(--accent); color: var(--accent-fg) }
+.km { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px }
+.lista { list-style: none; margin: 0; padding: 0; max-height: 300px; overflow-y: auto; border-top: 1px solid var(--line) }
+.lista li { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 8px 2px; border-bottom: 1px solid var(--line) }
+.lista li .n { min-width: 0; overflow-wrap: anywhere }
+.lista li .n small { display: block; color: var(--muted); font-size: .78rem }
+.lista li .d { font: .8rem var(--f-mono); color: var(--muted); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums }
+.lista li.off .n { opacity: .45; text-decoration: line-through }
+.lista li.vuota { display: block; color: var(--muted); font-size: .9rem }
+input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent) }
+.tot { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px }
+.tot div { display: flex; flex-direction: column; gap: 2px }
+.tot b { font: 600 1.35rem/1 var(--f-mono); font-variant-numeric: tabular-nums }
+.tot span { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em }
+.avviso { border-left: 3px solid var(--warn); background: var(--accent-soft); padding: 8px 10px; border-radius: 4px; font-size: .9rem; margin: 10px 0 0 }
+.dest { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.dest label { display: flex; gap: 10px; align-items: flex-start; padding: 10px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; min-width: 0 }
+.dest label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft) }
+.dest input { margin-top: 3px; accent-color: var(--accent); width: 18px; height: 18px; flex: none }
+.dest small { display: block; color: var(--muted) }
+.uscita { font: 500 .95rem var(--f-mono); overflow-wrap: anywhere }
+.btn { display: block; width: 100%; text-align: center; font: 700 1.1rem/1 var(--f-disp); letter-spacing: .02em; padding: 15px 12px; border-radius: 9px;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--accent-fg); cursor: pointer; text-decoration: none }
+.btn.sec { background: transparent; color: var(--fg); border-color: var(--line); font-weight: 600; font-size: 1rem; padding: 12px }
+.btn.pic { display: inline-block; width: auto; padding: 8px 12px; font-size: .95rem }
+.btn:disabled { opacity: .45; cursor: default }
+.riga { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
+.gps-stato { display: flex; gap: 10px; align-items: center; font-size: .95rem }
+.pallino { width: 10px; height: 10px; border-radius: 50%; background: var(--line); flex: none }
+.pallino.on { background: var(--ok) }
+.conferma { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; background: var(--accent-soft); padding: 8px 10px; border-radius: 6px; font-size: .9rem }
+.barra { height: 8px; background: var(--bar); border-radius: 4px; overflow: hidden }
+.barra div { height: 100%; width: 0; background: var(--accent) }
+.log { font: .78rem/1.5 var(--f-mono); background: var(--code); border-radius: 6px; padding: 8px 10px; max-height: 220px; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 }
+.esito { font-size: .95rem; font-weight: 600; margin: 0 }
+.esito.ok { color: var(--ok) } .esito.no { color: var(--warn) }
+.piccolo { font-size: .85rem; color: var(--muted); margin: 0 }
+code { font: .82rem var(--f-mono); background: var(--code); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere }
+a { color: var(--accent) }
+.btn:focus-visible, .seg button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px }
+footer { font-size: .8rem; color: var(--muted); text-align: center }
+@media (max-width: 420px) { .dest { grid-template-columns: 1fr } }
+@media (prefers-reduced-motion: no-preference) { .btn, .seg button { transition: background .15s, color .15s } .barra div { transition: width .2s } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Carica <span>Mappe</span></h1>
+    <p class="sub">Mappe CTRN 1:5000 per GPS Garmin, dal Drive della protezione civile. <span id="info-dati">Leggo l'elenco delle mappe…</span></p>
+  </header>
+
+  <p class="avviso" id="errore-dati" hidden></p>
+
+  <section aria-labelledby="h-zona">
+    <h2 id="h-zona">1 · Zona</h2>
+    <div class="stack">
+      <div class="grid2">
+        <label class="f">Regione / Paese<select id="sel-reg"></select></label>
+        <label class="f">Provincia / Land / Cantone<select id="sel-prov"></select></label>
+      </div>
+      <label class="f">Comune (vuoto = mappa provinciale)
+        <input type="search" id="cerca" list="lista-comuni" placeholder="Scrivi il nome del comune" autocomplete="off">
+        <datalist id="lista-comuni"></datalist>
+      </label>
+      <div class="seg" role="group" aria-label="Cosa caricare">
+        <button type="button" data-m="prov">Provincia</button>
+        <button type="button" data-m="solo">Comune</button>
+        <button type="button" data-m="lim">Limitrofi</button>
+        <button type="button" data-m="ret">Rettangolo</button>
+      </div>
+      <div class="km" id="km" hidden>
+        <label class="f">N km<input type="number" id="km-n" min="0" max="50" step="1" value="5"></label>
+        <label class="f">S km<input type="number" id="km-s" min="0" max="50" step="1" value="5"></label>
+        <label class="f">E km<input type="number" id="km-e" min="0" max="50" step="1" value="5"></label>
+        <label class="f">O km<input type="number" id="km-o" min="0" max="50" step="1" value="5"></label>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-lista">
+    <h2 id="h-lista">2 · Mappe scelte</h2>
+    <ul class="lista" id="lista"><li class="vuota">L'elenco compare quando è letto dal Drive.</li></ul>
+    <div class="tot">
+      <div><b id="t-n">0</b><span>mappe</span></div>
+      <div><b id="t-mb">0</b><span>MB</span></div>
+      <div><b id="t-t">0</b><span>tessere</span></div>
+    </div>
+    <p class="piccolo" id="t-sel"></p>
+    <p class="avviso" id="avv" hidden></p>
+  </section>
+
+  <section aria-labelledby="h-gps">
+    <h2 id="h-gps">3 · GPS</h2>
+    <div class="stack">
+      <div id="gps-si" class="stack" hidden>
+        <div class="gps-stato"><span class="pallino" id="gps-pallino"></span><span id="gps-nome">GPS non scelto</span></div>
+        <div class="riga">
+          <button type="button" class="btn sec pic" id="b-gps">Scegli la cartella Garmin del GPS</button>
+          <button type="button" class="btn sec pic" id="b-gps-agg" hidden>Rileggi il GPS</button>
+        </div>
+        <ul class="lista" id="gps-lista" hidden></ul>
+        <p class="piccolo" id="gps-tot"></p>
+        <div class="riga" id="gps-azioni" hidden>
+          <button type="button" class="btn sec pic" id="b-cancella" disabled>Cancella le mappe selezionate</button>
+        </div>
+        <div class="conferma" id="conferma" hidden>
+          <span id="conferma-testo"></span>
+          <button type="button" class="btn pic" id="b-conf-si">Sì, cancella</button>
+          <button type="button" class="btn sec pic" id="b-conf-no">Annulla</button>
+        </div>
+      </div>
+      <p class="piccolo" id="gps-no" hidden>Questo browser non può scrivere direttamente nel GPS (serve Chrome o Edge sul computer). L'app scarica e unisce le mappe e ti dà <b>un solo file</b>: poi lo copi nella cartella <b>Garmin</b> del GPS (sull'iPhone con l'app File, sul computer col Finder o Esplora risorse).</p>
+      <div class="dest">
+        <label><input type="radio" name="dest" id="d-int" value="0" checked><span>Memoria interna<small>Cartella Garmin del GPS</small></span></label>
+        <label><input type="radio" name="dest" id="d-sd" value="1"><span>Scheda di memoria<small>gmapsupp.img (o gmapsup1.img…)</small></span></label>
+      </div>
+      <div class="piccolo">File: <span class="uscita" id="uscita">–</span></div>
+      <button type="button" class="btn" id="b-carica" disabled>Carica nel GPS</button>
+      <a class="piccolo" id="link-diretto" hidden target="_blank" rel="noopener">Oppure scarica il file direttamente dal Drive</a>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-av" id="sez-av" hidden>
+    <h2 id="h-av">4 · Avanzamento</h2>
+    <div class="stack">
+      <div class="barra" aria-hidden="true"><div id="barra"></div></div>
+      <p class="esito" id="esito" role="status"></p>
+      <pre class="log" id="log"></pre>
+      <div class="riga"><button type="button" class="btn sec pic" id="b-svuota">Svuota le mappe scaricate</button></div>
+    </div>
+  </section>
+
+  <footer>Cartografia Garmin · UCS PC ANA PN e PC RFVG · uso gratuito per la protezione civile · <span id="versione"></span></footer>
+</div>
+
+<script src="unisci.js"></script>
+<script>
+"use strict";
+// ---------------------------------------------------------------- impostazioni
+const VERSIONE = "1.0 (22 ott 2026)";
+const CHIAVE_API = "";                                   // chiave API Google (solo Drive API, limitata a questo sito)
+const RADICE = "1Qss5yBi3WuEZ-LSkcJ1TjaKrd8QHeOuu";      // Cartografia_cond sul Drive (link pubblico, sola lettura)
+const INDICE = ["Estrazione_mappe", "_dati", "indice_img.csv"];
+const KM_GRADO = 111.32, LIMITE_TESSERE = 2000;
+const API = "https://www.googleapis.com/drive/v3/files";
+
+const $ = id => document.getElementById(id);
+const leggi = (k, def) => { try { const v = localStorage.getItem("cm_" + k); return v === null ? def : JSON.parse(v); } catch (e) { return def; } };
+const salva = (k, v) => { try { localStorage.setItem("cm_" + k, JSON.stringify(v)); } catch (e) {} };
+const mb = n => n < 10 * 1048576 ? (n / 1048576).toFixed(1) : Math.round(n / 1048576).toLocaleString("it");
+const bello = p => p.replace(/^Prov/, "").replace(/^[A-Z]{2}_/, "").replace(/([a-zà-ÿ])([A-Z])/g, "$1 $2");
+const PUO_SCRIVERE = typeof window.showDirectoryPicker === "function";
+
+// ---------------------------------------------------------------- Drive (chiave API: niente account)
+const elenchi = new Map();
+async function driveGet(url) {
+  const r = await fetch(url);
+  if (!r.ok) {
+    let m = ""; try { m = (await r.json()).error.message; } catch (e) {}
+    throw new Error("Drive: " + r.status + (m ? " " + m : "") + (r.status === 403 ? " (chiave API o troppi download: riprova più tardi)" : ""));
+  }
+  return r;
+}
+async function elenco(id) {
+  if (elenchi.has(id)) return elenchi.get(id);
+  const out = new Map(); let tok = "";
+  do {
+    const q = new URLSearchParams({ q: "'" + id + "' in parents and trashed=false", pageSize: "1000", key: CHIAVE_API,
+      fields: "nextPageToken,files(id,name,mimeType,size,modifiedTime)", supportsAllDrives: "true", includeItemsFromAllDrives: "true" });
+    if (tok) q.set("pageToken", tok);
+    const d = await (await driveGet(API + "?" + q)).json();
+    for (const f of d.files || []) if (!out.has(f.name)) out.set(f.name, f);
+    tok = d.nextPageToken || "";
+  } while (tok);
+  elenchi.set(id, out);
+  return out;
+}
+async function trova(parti) {
+  let id = RADICE, f = null;
+  for (const p of parti) {
+    const el = await elenco(id);
+    f = el.get(p);
+    if (!f) throw new Error("sul Drive non trovo " + parti.join("/"));
+    id = f.id;
+  }
+  return f;
+}
+const urlFile = f => API + "/" + f.id + "?alt=media&key=" + CHIAVE_API;
+const urlDiretto = f => "https://drive.usercontent.google.com/download?id=" + f.id + "&export=download&confirm=t";
+
+async function scarica(f, avanza) {
+  const chiave = location.origin + "/__mappe/" + f.id + "/" + encodeURIComponent(f.modifiedTime || "");
+  let cache = null;
+  try { cache = await caches.open("carica-mappe"); const c = await cache.match(chiave); if (c) { avanza(+f.size || 0, true); return new Uint8Array(await c.arrayBuffer()); } } catch (e) { cache = null; }
+  const r = await driveGet(urlFile(f));
+  const tot = +f.size || +r.headers.get("content-length") || 0;
+  const pezzi = []; let n = 0;
+  const lettore = r.body.getReader();
+  for (;;) { const { done, value } = await lettore.read(); if (done) break; pezzi.push(value); n += value.length; avanza(value.length, false); }
+  const d = new Uint8Array(n); n = 0; for (const p of pezzi) { d.set(p, n); n += p.length; }
+  if (tot && d.length !== tot) throw new Error(f.name + ": scaricati " + d.length + " byte su " + tot);
+  if (cache) { try { await cache.put(chiave, new Response(d)); } catch (e) {} }
+  return d;
+}
+
+// ---------------------------------------------------------------- elenco delle mappe (indice_img.csv)
+let D = null;
+function leggiCsv(t) {
+  return t.replace(/^﻿/, "").split(/\r?\n/).filter(Boolean).map(l => l.split(";"));
+}
+function costruisci(righe) {
+  righe = righe.slice(1);
+  const reg = [], ireg = {}, prov = [], iprov = {}, com = [], icom = {};
+  for (const r of righe) if (!(r[1] in ireg)) { ireg[r[1]] = reg.length; reg.push([r[1], r[2]]); }
+  for (const r of righe) {
+    if (!(r[3] in iprov)) { iprov[r[3]] = prov.length; prov.push({ nome: r[3], reg: ireg[r[1]], perc: "", dim: 0, data: "", t: 0 }); }
+    const p = prov[iprov[r[3]]];
+    if (r[0] === "P") { p.perc = r[5]; p.dim = +r[6] || 0; p.data = r[7]; p.t = +r[13] || 0; }
+  }
+  for (const r of righe) {
+    if (r[0] !== "C" || !(r[8] && r[9] && r[10] && r[11])) continue;
+    icom[r[3] + ":" + r[4]] = com.length;
+    com.push({ prov: iprov[r[3]], nome: r[4], perc: r[5], dim: +r[6] || 0, data: r[7], b: [+r[8], +r[9], +r[10], +r[11]], t: +r[13] || 0, vic: r[12] });
+  }
+  for (const c of com) c.vic = c.vic.split("|").map(k => icom[k]).filter(i => i !== undefined);
+  return { r: reg, p: prov, c: com };
+}
+
+// ---------------------------------------------------------------- scelta della zona
+const st = { reg: 0, prov: 0, com: -1, modo: "prov", off: new Set(), voci: [] };
+function opzioni(sel, voci, valore) {
+  sel.innerHTML = "";
+  voci.forEach(([v, t]) => { const o = document.createElement("option"); o.value = v; o.textContent = t; sel.appendChild(o); });
+  sel.value = String(valore);
+}
+const provinceDi = r => D.p.map((p, i) => [i, p]).filter(([, p]) => p.reg === r).sort((a, b) => bello(a[1].nome).localeCompare(bello(b[1].nome), "it"));
+const comuniDi = pi => D.c.map((c, i) => [i, c]).filter(([, c]) => c.prov === pi).sort((a, b) => a[1].nome.localeCompare(b[1].nome, "it"));
+function riempiReg() { opzioni($("sel-reg"), D.r.map((r, i) => [i, r[1]]).sort((a, b) => a[1].localeCompare(b[1], "it")), st.reg); }
+function riempiProv() {
+  const ps = provinceDi(st.reg);
+  if (!ps.some(([i]) => i === st.prov)) st.prov = ps.length ? ps[0][0] : 0;
+  opzioni($("sel-prov"), ps.map(([i, p]) => [i, bello(p.nome)]), st.prov);
+  const dl = $("lista-comuni"); dl.innerHTML = "";
+  comuniDi(st.prov).forEach(([, c]) => { const o = document.createElement("option"); o.value = c.nome; dl.appendChild(o); });
+}
+function trovaComune(testo) {
+  const t = testo.trim().toLowerCase();
+  if (!t) return -1;
+  const e = comuniDi(st.prov).find(([, c]) => c.nome.toLowerCase() === t);
+  return e ? e[0] : -1;
+}
+function rettangolo(ci, km) {
+  const c = D.c[ci].b, [n, s, e, o] = km;
+  const kx = KM_GRADO * Math.max(0.2, Math.cos(((c[1] + c[3]) / 2) * Math.PI / 180));
+  const r = [c[0] - o / kx, c[1] - s / KM_GRADO, c[2] + e / kx, c[3] + n / KM_GRADO];
+  const cx = (c[0] + c[2]) / 2, cy = (c[1] + c[3]) / 2, out = [];
+  D.c.forEach((x, i) => {
+    const q = x.b;
+    if (i === ci || q[2] < r[0] || q[0] > r[2] || q[3] < r[1] || q[1] > r[3]) return;
+    out.push([Math.hypot(((q[0] + q[2]) / 2 - cx) * kx, ((q[1] + q[3]) / 2 - cy) * KM_GRADO), i]);
+  });
+  return out.sort((a, b) => a[0] - b[0]).map(x => x[1]);
+}
+const km = () => ["n", "s", "e", "o"].map(k => Math.max(0, +$("km-" + k).value || 0));
+function calcolaVoci() {
+  const voci = [];
+  if (st.modo === "prov" || st.com < 0) {
+    const p = D.p[st.prov];
+    if (p.perc) voci.push({ k: "P" + st.prov, nome: "Provinciale " + bello(p.nome), info: D.r[p.reg][1], perc: p.perc, dim: p.dim, t: p.t });
+  } else {
+    let idx = [st.com];
+    if (st.modo === "lim") idx = idx.concat(D.c[st.com].vic);
+    if (st.modo === "ret") idx = idx.concat(rettangolo(st.com, km()));
+    idx.forEach(i => { const c = D.c[i], p = D.p[c.prov];
+      voci.push({ k: "C" + i, nome: c.nome, info: bello(p.nome) + " · " + D.r[p.reg][1], perc: c.perc, dim: c.dim, t: c.t }); });
+  }
+  st.voci = voci;
+}
+const scelte = () => st.voci.filter(v => !st.off.has(v.k));
+const nomeZona = () => st.com >= 0 && st.modo !== "prov" ? D.c[st.com].nome : bello(D.p[st.prov].nome);
+
+function nomeUscita(sc) {
+  if (!sc.length) return "";
+  if ($("d-sd").checked) {
+    let n = "gmapsupp.img", k = 1;
+    while (gps.nomi.has(n.toLowerCase())) n = "gmapsup" + k++ + ".img";
+    return n;
+  }
+  if (sc.length === 1) return sc[0].perc.split("/").pop();
+  return nomeZona() + "+.img";
+}
+
+function disegna() {
+  if (!D) return;
+  document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.m === (st.com < 0 ? "prov" : st.modo))));
+  $("km").hidden = !(st.modo === "ret" && st.com >= 0);
+  calcolaVoci();
+  const ul = $("lista"); ul.innerHTML = "";
+  if (!st.voci.length) { const li = document.createElement("li"); li.className = "vuota"; li.textContent = "Per questa provincia non c'è la mappa provinciale: scegli un comune."; ul.appendChild(li); }
+  st.voci.forEach((v, j) => {
+    const li = document.createElement("li"), on = !st.off.has(v.k);
+    if (!on) li.className = "off";
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = on; cb.id = "v-" + v.k;
+    cb.setAttribute("aria-label", v.nome); cb.disabled = j === 0 && st.voci.length > 1;
+    cb.addEventListener("change", () => { cb.checked ? st.off.delete(v.k) : st.off.add(v.k); disegna(); });
+    const n = document.createElement("div"); n.className = "n"; n.textContent = v.nome;
+    const sm = document.createElement("small"); sm.textContent = v.info; n.appendChild(sm);
+    const d = document.createElement("div"); d.className = "d"; d.textContent = mb(v.dim) + " MB · " + v.t + " t";
+    li.append(cb, n, d); ul.appendChild(li);
+  });
+  const sc = scelte(), tb = sc.reduce((a, v) => a + v.dim, 0), tt = sc.reduce((a, v) => a + v.t, 0);
+  $("t-n").textContent = sc.length; $("t-mb").textContent = mb(tb); $("t-t").textContent = tt;
+  $("t-sel").textContent = st.voci.length > 1 ? "Selezionati " + sc.length + " comuni su " + st.voci.length + "." : "";
+  const usc = nomeUscita(sc);
+  const dopo = gps.pronto ? gps.tessere - (gps.tessPer.get(usc.toLowerCase()) || 0) + tt : tt;
+  const avv = [];
+  if (dopo > LIMITE_TESSERE) avv.push((gps.pronto ? "Dopo il caricamento nel GPS ci sarebbero circa " + dopo + " tessere" : tt + " tessere") +
+    ": oltre le ~" + LIMITE_TESSERE + " che reggono GPSMAP e Atemos. Togli qualche comune o cancella mappe dal GPS.");
+  else if (gps.pronto) avv.push("Nel GPS dopo il caricamento: circa " + dopo + " tessere su ~" + LIMITE_TESSERE + ".");
+  if (sc.length > 40) avv.push(sc.length + " comuni: il download sarà lungo, meglio col Wi-Fi.");
+  if (!PUO_SCRIVERE && tb > 400 * 1048576) avv.push("File grande: sul telefono conviene il link diretto dal Drive qui sotto.");
+  $("avv").hidden = !avv.length; $("avv").textContent = avv.join(" ");
+  $("avv").style.borderLeftColor = dopo > LIMITE_TESSERE ? "" : "var(--ok)";
+  $("uscita").textContent = usc || "–";
+  $("b-carica").disabled = !sc.length || lavoro || (PUO_SCRIVERE && !gps.pronto);
+  $("b-carica").textContent = PUO_SCRIVERE ? (gps.pronto ? "Carica nel GPS" : "Prima scegli il GPS") : (sc.length > 1 ? "Scarica il file unito" : "Scarica il file");
+  $("link-diretto").hidden = true;
+  if (sc.length === 1) linkDiretto(sc[0]);
+  salva("stato", { reg: D.r[st.reg][0], prov: D.p[st.prov].nome, com: st.com >= 0 ? D.c[st.com].nome : "", modo: st.modo, km: km(), sd: $("d-sd").checked });
+}
+let ultimoLink = 0;
+async function linkDiretto(v) {
+  const io = ++ultimoLink;
+  try { const f = await trova(v.perc.split("/")); if (io !== ultimoLink) return;
+    $("link-diretto").href = urlDiretto(f); $("link-diretto").hidden = false; } catch (e) {}
+}
+
+// ---------------------------------------------------------------- GPS (File System Access, Chrome/Edge)
+const gps = { cart: null, pronto: false, nomi: new Set(), tessere: 0, tessPer: new Map(), file: [] };
+function db() {
+  return new Promise((ok, ko) => { const r = indexedDB.open("carica-mappe", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("h"); r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error); });
+}
+async function dbSet(k, v) { try { const d = await db(); await new Promise((ok, ko) => { const t = d.transaction("h", "readwrite"); t.objectStore("h").put(v, k); t.oncomplete = ok; t.onerror = ko; }); } catch (e) {} }
+async function dbGet(k) { try { const d = await db(); return await new Promise((ok) => { const r = d.transaction("h").objectStore("h").get(k); r.onsuccess = () => ok(r.result); r.onerror = () => ok(null); }); } catch (e) { return null; } }
+
+async function garminIn(dir) {
+  if (dir.name.toLowerCase() === "garmin") return dir;
+  for await (const [n, h] of dir.entries()) if (h.kind === "directory" && n.toLowerCase() === "garmin") return h;
+  return null;
+}
+async function scegliGps() {
+  let dir;
+  try { dir = await window.showDirectoryPicker({ id: "gps-garmin", mode: "readwrite" }); }
+  catch (e) { return; }
+  const g = await garminIn(dir);
+  if (!g) { $("gps-nome").textContent = "In «" + dir.name + "» non c'è la cartella Garmin: scegli la cartella Garmin del GPS (o la radice del GPS)."; return; }
+  gps.cart = g; await dbSet("gps", g);
+  await leggiGps();
+}
+async function permesso(h, chiedi) {
+  const o = { mode: "readwrite" };
+  if ((await h.queryPermission(o)) === "granted") return true;
+  return chiedi && (await h.requestPermission(o)) === "granted";
+}
+async function leggiGps() {
+  gps.pronto = false; gps.nomi = new Set(); gps.tessPer = new Map(); gps.tessere = 0; gps.file = [];
+  try {
+    if (!gps.cart || !(await permesso(gps.cart, false))) throw new Error("permesso");
+    for await (const [n, h] of gps.cart.entries()) {
+      if (h.kind !== "file") continue;
+      gps.nomi.add(n.toLowerCase());
+      if (!/\.img$/i.test(n)) continue;
+      const f = await h.getFile(), t = (await Unisci.contaTessere(f)) || 0;
+      gps.file.push({ n, dim: f.size, t }); gps.tessPer.set(n.toLowerCase(), t); gps.tessere += t;
+    }
+    gps.pronto = true;
+  } catch (e) {
+    if (gps.cart) { $("gps-nome").textContent = "GPS: riattiva l'accesso (collega il GPS e tocca il pulsante)"; $("b-gps").textContent = "Riattiva l'accesso al GPS"; }
+    $("gps-pallino").classList.remove("on"); $("gps-lista").hidden = $("gps-azioni").hidden = true; $("gps-tot").textContent = "";
+    disegna(); return;
+  }
+  gps.file.sort((a, b) => a.n.localeCompare(b.n, "it"));
+  $("gps-pallino").classList.add("on");
+  $("gps-nome").textContent = "GPS collegato: cartella " + gps.cart.name;
+  $("b-gps").textContent = "Cambia GPS"; $("b-gps-agg").hidden = false;
+  const ul = $("gps-lista"); ul.innerHTML = ""; ul.hidden = false; $("gps-azioni").hidden = !gps.file.length;
+  if (!gps.file.length) { const li = document.createElement("li"); li.className = "vuota"; li.textContent = "Nessuna mappa .img nella cartella Garmin."; ul.appendChild(li); }
+  gps.file.forEach((x, i) => {
+    const li = document.createElement("li");
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.id = "g-" + i; cb.dataset.n = x.n; cb.setAttribute("aria-label", "Seleziona " + x.n);
+    cb.addEventListener("change", () => { $("b-cancella").disabled = !ul.querySelector("input:checked"); $("conferma").hidden = true; });
+    const n = document.createElement("div"); n.className = "n"; n.textContent = x.n;
+    const d = document.createElement("div"); d.className = "d"; d.textContent = mb(x.dim) + " MB · " + x.t + " t";
+    li.append(cb, n, d); ul.appendChild(li);
+  });
+  $("b-cancella").disabled = true; $("conferma").hidden = true;
+  $("gps-tot").textContent = gps.file.length + " mappe, " + gps.tessere + " tessere (limite circa " + LIMITE_TESSERE + ").";
+  disegna();
+}
+function chiediCancella() {
+  const nomi = [...$("gps-lista").querySelectorAll("input:checked")].map(c => c.dataset.n);
+  if (!nomi.length) return;
+  $("conferma-testo").textContent = "Cancellare dal GPS " + (nomi.length === 1 ? nomi[0] : nomi.length + " mappe") + "?";
+  $("conferma").hidden = false; $("b-conf-si").onclick = () => cancella(nomi);
+}
+async function cancella(nomi) {
+  $("conferma").hidden = true;
+  try { if (!(await permesso(gps.cart, true))) throw new Error("permesso negato"); for (const n of nomi) await gps.cart.removeEntry(n); }
+  catch (e) { $("gps-tot").textContent = "Non riesco a cancellare: " + e.message; }
+  await leggiGps();
+}
+
+// ---------------------------------------------------------------- caricamento
+let lavoro = false;
+function log(s) { const l = $("log"); l.textContent += s + "\n"; l.scrollTop = l.scrollHeight; }
+async function carica() {
+  const sc = scelte(); if (!sc.length || lavoro) return;
+  lavoro = true; disegna();
+  $("sez-av").hidden = false; $("log").textContent = ""; $("esito").textContent = "Scarico le mappe dal Drive…"; $("esito").className = "esito";
+  $("barra").style.width = "0";
+  const t0 = performance.now();
+  try {
+    if (PUO_SCRIVERE && !(await permesso(gps.cart, true))) throw new Error("il GPS non è più accessibile: collegalo e scegli di nuovo la cartella");
+    const totale = sc.reduce((a, v) => a + v.dim, 0) || 1; let fatto = 0;
+    const avanza = (n) => { fatto += n; $("barra").style.width = Math.min(100, fatto / totale * 100).toFixed(1) + "%"; };
+    const dati = [];
+    for (const v of sc) {
+      const f = await trova(v.perc.split("/"));
+      const prima = fatto, ti = performance.now();
+      let cache = false;
+      const d = await scarica(f, (n, c) => { cache = c; avanza(n); });
+      log((cache ? "  già scaricata: " : "  scaricata: ") + f.name + " (" + mb(d.length) + " MB" + (cache ? "" : ", " + Math.round((performance.now() - ti) / 1000) + " s") + ")");
+      dati.push(d); if (fatto === prima) avanza(d.length);
+    }
+    const nome = nomeUscita(sc);
+    let parti, byte, tess;
+    if (dati.length === 1) { parti = [dati[0]]; byte = dati[0].length; tess = sc[0].t; }
+    else { $("esito").textContent = "Unisco " + dati.length + " mappe…"; await new Promise(r => setTimeout(r, 30));
+      const r = Unisci.unisci(dati, nomeZona() + "+ (" + dati.length + " comuni)"); parti = r.parti; byte = r.byte; tess = r.tessere;
+      log("Unite " + dati.length + " mappe, " + tess + " tessere: " + nome + " (" + mb(byte) + " MB)"); }
+    if (PUO_SCRIVERE) {
+      $("esito").textContent = "Scrivo " + nome + " nel GPS…";
+      const fh = await gps.cart.getFileHandle(nome, { create: true });
+      const w = await fh.createWritable();
+      for (const p of parti) await w.write(p);
+      await w.close();
+      log("Scritto nel GPS: " + gps.cart.name + "/" + nome);
+      $("esito").textContent = "Fatto in " + Math.round((performance.now() - t0) / 1000) + " s: " + nome + " nel GPS (" + mb(byte) + " MB, " + tess + " tessere). Espelli il GPS prima di staccarlo.";
+      await leggiGps();
+    } else {
+      const url = URL.createObjectURL(new Blob(parti, { type: "application/octet-stream" }));
+      const a = document.createElement("a"); a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 120000);
+      $("esito").textContent = "Pronto: " + nome + " (" + mb(byte) + " MB, " + tess + " tessere). Trovi il file nei Download: copialo nella cartella Garmin del GPS.";
+    }
+    $("esito").className = "esito ok"; $("barra").style.width = "100%";
+  } catch (e) {
+    $("esito").textContent = "Non riuscito: " + e.message; $("esito").className = "esito no"; log("ERRORE: " + e.message);
+  } finally { lavoro = false; disegna(); }
+}
+async function svuota() {
+  try { await caches.delete("carica-mappe"); log("Mappe scaricate cancellate da questo browser."); } catch (e) { log("Niente da svuotare."); }
+}
+
+// ---------------------------------------------------------------- avvio
+async function avvio() {
+  $("versione").textContent = "versione " + VERSIONE;
+  $("gps-si").hidden = !PUO_SCRIVERE; $("gps-no").hidden = PUO_SCRIVERE;
+  if (!CHIAVE_API) { $("errore-dati").hidden = false; $("errore-dati").textContent = "Manca la chiave API Google (CHIAVE_API in index.html)."; $("info-dati").textContent = ""; return; }
+  try {
+    const f = await trova(INDICE);
+    const testo = await (await driveGet(urlFile(f))).text();
+    D = costruisci(leggiCsv(testo));
+    const quando = f.modifiedTime ? new Date(f.modifiedTime).toLocaleDateString("it") : "";
+    $("info-dati").textContent = "Elenco" + (quando ? " del " + quando : "") + ": " + D.c.length.toLocaleString("it") + " comuni, " + D.p.length + " provinciali.";
+  } catch (e) {
+    $("info-dati").textContent = ""; $("errore-dati").hidden = false; $("errore-dati").textContent = "Non riesco a leggere l'elenco delle mappe dal Drive: " + e.message; return;
+  }
+  const s = leggi("stato", null);
+  const ri = s ? D.r.findIndex(r => r[0] === s.reg) : -1, fvg = D.r.findIndex(r => r[0] === "RFVG");
+  st.reg = ri >= 0 ? ri : (fvg >= 0 ? fvg : 0);
+  const pi = s ? D.p.findIndex(p => p.nome === s.prov && p.reg === st.reg) : -1;
+  st.prov = pi >= 0 ? pi : -1;
+  if (s) { st.modo = s.modo || "prov"; (s.km || []).forEach((v, j) => $("km-" + "nseo"[j]).value = v); $("d-sd").checked = !!s.sd; $("d-int").checked = !s.sd; }
+  riempiReg(); riempiProv();
+  if (s && s.com) { $("cerca").value = s.com; st.com = trovaComune(s.com); }
+  if (st.com < 0) st.modo = "prov";
+
+  $("sel-reg").addEventListener("change", e => { st.reg = +e.target.value; st.prov = -1; st.com = -1; st.modo = "prov"; $("cerca").value = ""; st.off.clear(); riempiProv(); disegna(); });
+  $("sel-prov").addEventListener("change", e => { st.prov = +e.target.value; st.com = -1; st.modo = "prov"; $("cerca").value = ""; st.off.clear(); riempiProv(); disegna(); });
+  $("cerca").addEventListener("input", e => { const c = trovaComune(e.target.value);
+    if (c !== st.com) { st.com = c; st.off.clear(); if (c >= 0 && st.modo === "prov") st.modo = "solo"; if (c < 0) st.modo = "prov"; disegna(); } });
+  document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
+    if (b.dataset.m !== "prov" && st.com < 0) { $("cerca").focus(); $("cerca").placeholder = "Prima scrivi il comune"; return; }
+    st.modo = b.dataset.m; st.off.clear(); disegna(); }));
+  ["n", "s", "e", "o"].forEach(k => $("km-" + k).addEventListener("input", () => { st.off.clear(); disegna(); }));
+  document.querySelectorAll("input[name=dest]").forEach(r => r.addEventListener("change", disegna));
+  $("b-carica").addEventListener("click", carica);
+  $("b-svuota").addEventListener("click", svuota);
+  if (PUO_SCRIVERE) {
+    $("b-gps").addEventListener("click", async () => { if (gps.cart && !gps.pronto && await permesso(gps.cart, true)) return leggiGps(); scegliGps(); });
+    $("b-gps-agg").addEventListener("click", leggiGps);
+    $("b-cancella").addEventListener("click", chiediCancella);
+    $("b-conf-no").addEventListener("click", () => $("conferma").hidden = true);
+    const h = await dbGet("gps");
+    if (h) { gps.cart = h; await leggiGps(); }
+  }
+  disegna();
+}
+avvio();
+</script>
+</body>
+</html>
