@@ -190,7 +190,7 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
 <script>
 "use strict";
 // ---------------------------------------------------------------- impostazioni
-const VERSIONE = "1.2 (22 ott 2026)";
+const VERSIONE = "1.3 (22 ott 2026)";
 const CHIAVE_API = "AIzaSyA3eA9-4n6jc6llgXn805Pus54awLbTxn0";                                   // chiave API Google (solo Drive API, limitata a questo sito)
 const RADICE = "1Qss5yBi3WuEZ-LSkcJ1TjaKrd8QHeOuu";      // Cartografia_cond sul Drive (link pubblico, sola lettura)
 const INDICE = ["Estrazione_mappe", "_dati", "indice_img.csv"];
@@ -233,7 +233,7 @@ async function elenco(id) {
       fields: "nextPageToken,files(id,name,mimeType,size,modifiedTime)", supportsAllDrives: "true", includeItemsFromAllDrives: "true" });
     if (tok) q.set("pageToken", tok);
     const d = await (await driveGet(API + "?" + q)).json();
-    for (const f of d.files || []) if (!out.has(f.name)) out.set(f.name, f);
+    for (const f of d.files || []) { const n = f.name.normalize("NFC"); if (!out.has(n)) out.set(n, f); }   // Sežana: ž in un carattere
     tok = d.nextPageToken || "";
   } while (tok);
   elenchi.set(id, out);
@@ -243,7 +243,7 @@ async function trova(parti) {
   let id = RADICE, f = null;
   for (const p of parti) {
     const el = await elenco(id);
-    f = el.get(p);
+    f = el.get(p.normalize("NFC"));
     if (!f) throw new Error("sul Drive non trovo " + parti.join("/"));
     id = f.id;
   }
@@ -270,7 +270,7 @@ async function scarica(f, avanza) {
 // ---------------------------------------------------------------- elenco delle mappe (indice_img.csv)
 let D = null;
 function leggiCsv(t) {
-  return t.replace(/^﻿/, "").split(/\r?\n/).filter(Boolean).map(l => l.split(";"));
+  return t.normalize("NFC").replace(/^\uFEFF/, "").split(/\r?\n/).filter(Boolean).map(l => l.split(";"));
 }
 function costruisci(righe) {
   righe = righe.slice(1);
@@ -308,7 +308,7 @@ function riempiProv() {
   comuniDi(st.prov).forEach(([, c]) => { const o = document.createElement("option"); o.value = c.nome; dl.appendChild(o); });
 }
 function trovaComune(testo) {
-  const t = testo.trim().toLowerCase();
+  const t = testo.normalize("NFC").trim().toLowerCase();
   if (!t) return -1;
   const e = comuniDi(st.prov).find(([, c]) => c.nome.toLowerCase() === t);
   return e ? e[0] : -1;
