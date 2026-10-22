@@ -190,7 +190,7 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
 <script>
 "use strict";
 // ---------------------------------------------------------------- impostazioni
-const VERSIONE = "1.3 (22 ott 2026)";
+const VERSIONE = "1.4 (22 ott 2026)";
 const CHIAVE_API = "AIzaSyA3eA9-4n6jc6llgXn805Pus54awLbTxn0";                                   // chiave API Google (solo Drive API, limitata a questo sito)
 const RADICE = "1Qss5yBi3WuEZ-LSkcJ1TjaKrd8QHeOuu";      // Cartografia_cond sul Drive (link pubblico, sola lettura)
 const INDICE = ["Estrazione_mappe", "_dati", "indice_img.csv"];
@@ -206,17 +206,17 @@ const PUO_SCRIVERE = typeof window.showDirectoryPicker === "function";
 
 // ---------------------------------------------------------------- Drive (chiave API: niente account)
 const elenchi = new Map();
-async function driveGet(url) {
+async function driveGet(url, tentativi = 4) {
   // Google a volte non risponde (file appena aggiornato sul Drive, troppi download insieme): il browser lo vede
   // come "Failed to fetch". Si riprova fino a 4 volte con una pausa crescente.
   let r = null, ultimo = null;
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < tentativi; i++) {
     try {
       r = await fetch(url, { cache: "no-store" });
       if (r.ok || (r.status !== 429 && r.status < 500)) break;
       ultimo = new Error("Drive: " + r.status);
     } catch (e) { ultimo = e; r = null; }
-    if (i < 3) { if (typeof log === "function" && $("sez-av") && !$("sez-av").hidden) log("  Google non risponde, riprovo…"); await new Promise(ok => setTimeout(ok, 1500 * (i + 1))); }
+    if (i < tentativi - 1) { if (typeof log === "function" && $("sez-av") && !$("sez-av").hidden) log("  Google non risponde, riprovo…"); await new Promise(ok => setTimeout(ok, 1500 * (i + 1))); }
   }
   if (!r) throw new Error("Google Drive non risponde (" + (ultimo ? ultimo.message : "rete") + "). Controlla la connessione e riprova fra qualche minuto.");
   if (!r.ok) {
@@ -249,14 +249,22 @@ async function trova(parti) {
   }
   return f;
 }
-const urlFile = f => API + "/" + f.id + "?alt=media&key=" + CHIAVE_API;
+// Due indirizzi ufficiali per il contenuto dei file: il primo (download) ha retto anche quando l'altro rifiutava
+// tutti i download (22 ott sera, "Failed to fetch"); se uno non risponde si prova l'altro.
+const urlFiles = f => ["https://www.googleapis.com/download/drive/v3/files/" + f.id + "?alt=media&key=" + CHIAVE_API,
+                       API + "/" + f.id + "?alt=media&key=" + CHIAVE_API];
+async function driveFile(f) {
+  let errore = null;
+  for (const u of urlFiles(f)) { try { return await driveGet(u, 3); } catch (e) { errore = e; } }
+  throw errore;
+}
 const urlDiretto = f => "https://drive.usercontent.google.com/download?id=" + f.id + "&export=download&confirm=t";
 
 async function scarica(f, avanza) {
   const chiave = location.origin + "/__mappe/" + f.id + "/" + encodeURIComponent(f.modifiedTime || "");
   let cache = null;
   try { cache = await caches.open("carica-mappe"); const c = await cache.match(chiave); if (c) { avanza(+f.size || 0, true); return new Uint8Array(await c.arrayBuffer()); } } catch (e) { cache = null; }
-  const r = await driveGet(urlFile(f));
+  const r = await driveFile(f);
   const tot = +f.size || +r.headers.get("content-length") || 0;
   const pezzi = []; let n = 0;
   const lettore = r.body.getReader();
@@ -537,7 +545,7 @@ async function avvio() {
   if (!CHIAVE_API) { $("errore-dati").hidden = false; $("errore-dati").textContent = "Manca la chiave API Google (CHIAVE_API in index.html)."; $("info-dati").textContent = ""; return; }
   try {
     const f = await trova(INDICE);
-    const testo = await (await driveGet(urlFile(f))).text();
+    const testo = await (await driveFile(f)).text();
     D = costruisci(leggiCsv(testo));
     const quando = f.modifiedTime ? new Date(f.modifiedTime).toLocaleDateString("it") : "";
     $("info-dati").textContent = "Elenco" + (quando ? " del " + quando : "") + ": " + D.c.length.toLocaleString("it") + " comuni, " + D.p.length + " provinciali.";
