@@ -168,6 +168,7 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
       </div>
       <div class="piccolo">File: <span class="uscita" id="uscita">–</span></div>
       <button type="button" class="btn" id="b-carica" disabled>Carica nel GPS</button>
+      <button type="button" class="btn sec" id="b-scarica" hidden disabled>Scarica il file (senza GPS)</button>
       <a class="piccolo" id="link-diretto" hidden target="_blank" rel="noopener">Oppure scarica il file direttamente dal Drive</a>
     </div>
   </section>
@@ -189,7 +190,7 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
 <script>
 "use strict";
 // ---------------------------------------------------------------- impostazioni
-const VERSIONE = "1.1 (22 ott 2026)";
+const VERSIONE = "1.2 (22 ott 2026)";
 const CHIAVE_API = "AIzaSyA3eA9-4n6jc6llgXn805Pus54awLbTxn0";                                   // chiave API Google (solo Drive API, limitata a questo sito)
 const RADICE = "1Qss5yBi3WuEZ-LSkcJ1TjaKrd8QHeOuu";      // Cartografia_cond sul Drive (link pubblico, sola lettura)
 const INDICE = ["Estrazione_mappe", "_dati", "indice_img.csv"];
@@ -342,11 +343,11 @@ function calcolaVoci() {
 const scelte = () => st.voci.filter(v => !st.off.has(v.k));
 const nomeZona = () => st.com >= 0 && st.modo !== "prov" ? D.c[st.com].nome : bello(D.p[st.prov].nome);
 
-function nomeUscita(sc) {
+function nomeUscita(sc, perScaricare) {
   if (!sc.length) return "";
   if ($("d-sd").checked) {
     let n = "gmapsupp.img", k = 1;
-    while (gps.nomi.has(n.toLowerCase())) n = "gmapsup" + k++ + ".img";
+    while (!perScaricare && gps.nomi.has(n.toLowerCase())) n = "gmapsup" + k++ + ".img";
     return n;
   }
   if (sc.length === 1) return sc[0].perc.split("/").pop();
@@ -387,6 +388,8 @@ function disegna() {
   $("uscita").textContent = usc || "–";
   $("b-carica").disabled = !sc.length || lavoro || (PUO_SCRIVERE && !gps.pronto);
   $("b-carica").textContent = PUO_SCRIVERE ? (gps.pronto ? "Carica nel GPS" : "Prima scegli il GPS") : (sc.length > 1 ? "Scarica il file unito" : "Scarica il file");
+  $("b-scarica").hidden = !PUO_SCRIVERE; $("b-scarica").disabled = !sc.length || lavoro;
+  $("b-scarica").textContent = (sc.length > 1 ? "Scarica il file unito" : "Scarica il file") + (gps.pronto ? " (senza scriverlo nel GPS)" : " (senza GPS)");
   $("link-diretto").hidden = true;
   if (sc.length === 1) linkDiretto(sc[0]);
   salva("stato", { reg: D.r[st.reg][0], prov: D.p[st.prov].nome, com: st.com >= 0 ? D.c[st.com].nome : "", modo: st.modo, km: km(), sd: $("d-sd").checked });
@@ -477,14 +480,15 @@ async function cancella(nomi) {
 // ---------------------------------------------------------------- caricamento
 let lavoro = false;
 function log(s) { const l = $("log"); l.textContent += s + "\n"; l.scrollTop = l.scrollHeight; }
-async function carica() {
+async function carica(soloFile) {
+  const nelGps = PUO_SCRIVERE && !soloFile;
   const sc = scelte(); if (!sc.length || lavoro) return;
   lavoro = true; disegna();
   $("sez-av").hidden = false; $("log").textContent = ""; $("esito").textContent = "Scarico le mappe dal Drive…"; $("esito").className = "esito";
   $("barra").style.width = "0";
   const t0 = performance.now();
   try {
-    if (PUO_SCRIVERE && !(await permesso(gps.cart, true))) throw new Error("il GPS non è più accessibile: collegalo e scegli di nuovo la cartella");
+    if (nelGps && !(await permesso(gps.cart, true))) throw new Error("il GPS non è più accessibile: collegalo e scegli di nuovo la cartella");
     const totale = sc.reduce((a, v) => a + v.dim, 0) || 1; let fatto = 0;
     const avanza = (n) => { fatto += n; $("barra").style.width = Math.min(100, fatto / totale * 100).toFixed(1) + "%"; };
     const dati = [];
@@ -496,13 +500,13 @@ async function carica() {
       log((cache ? "  già scaricata: " : "  scaricata: ") + f.name + " (" + mb(d.length) + " MB" + (cache ? "" : ", " + Math.round((performance.now() - ti) / 1000) + " s") + ")");
       dati.push(d); if (fatto === prima) avanza(d.length);
     }
-    const nome = nomeUscita(sc);
+    const nome = nomeUscita(sc, !nelGps);
     let parti, byte, tess;
     if (dati.length === 1) { parti = [dati[0]]; byte = dati[0].length; tess = sc[0].t; }
     else { $("esito").textContent = "Unisco " + dati.length + " mappe…"; await new Promise(r => setTimeout(r, 30));
       const r = Unisci.unisci(dati, nomeZona() + "+ (" + dati.length + " comuni)"); parti = r.parti; byte = r.byte; tess = r.tessere;
       log("Unite " + dati.length + " mappe, " + tess + " tessere: " + nome + " (" + mb(byte) + " MB)"); }
-    if (PUO_SCRIVERE) {
+    if (nelGps) {
       $("esito").textContent = "Scrivo " + nome + " nel GPS…";
       const fh = await gps.cart.getFileHandle(nome, { create: true });
       const w = await fh.createWritable();
@@ -559,7 +563,8 @@ async function avvio() {
     st.modo = b.dataset.m; st.off.clear(); disegna(); }));
   ["n", "s", "e", "o"].forEach(k => $("km-" + k).addEventListener("input", () => { st.off.clear(); disegna(); }));
   document.querySelectorAll("input[name=dest]").forEach(r => r.addEventListener("change", disegna));
-  $("b-carica").addEventListener("click", carica);
+  $("b-carica").addEventListener("click", () => carica(false));
+  $("b-scarica").addEventListener("click", () => carica(true));
   $("b-svuota").addEventListener("click", svuota);
   if (PUO_SCRIVERE) {
     $("b-gps").addEventListener("click", async () => { if (gps.cart && !gps.pronto && await permesso(gps.cart, true)) return leggiGps(); scegliGps(); });
