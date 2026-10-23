@@ -8,6 +8,7 @@
 "use strict";
 const PYODIDE = "https://cdn.jsdelivr.net/pyodide/v0.27.7/full/";
 const EZDXF = "ezdxf==1.4.5";
+const FONT = "https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans.ttf";
 const API = "https://www.googleapis.com/drive/v3/files";
 importScripts(PYODIDE + "pyodide.js");
 
@@ -104,6 +105,15 @@ async function avvio(m) {
   await py.loadPackage(["numpy", "pyproj", "sqlite3", "micropip"]);
   manda("stato", { s: "Carico ezdxf…" });
   await py.runPythonAsync("import micropip\nawait micropip.install('" + EZDXF + "')");
+  // ezdxf misura le scritte con un carattere TrueType: nel browser non ce ne sono ("no default font found").
+  // Gli si da' DejaVu Sans, che e' proprio il suo carattere di riserva.
+  try {
+    const r = await fetch(FONT);
+    if (r.ok) {
+      scrivi("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", new Uint8Array(await r.arrayBuffer()));
+      py.runPython("from ezdxf.fonts import fonts as _f\n_f.font_manager.clear()\n_f.font_manager.build(['/usr/share/fonts'])");
+    }
+  } catch (e) { log("(carattere DejaVu non caricato: le scritte si misurano in modo approssimato)"); }
   manda("stato", { s: "Leggo il programma e gli elenchi dal Drive…" });
   const prog = await elenco((await trova(["Estrazione_mappe", "Programma"])).id);
   for (const n of ["estrarre_mappe.py", "gis_lavoro.py"]) {

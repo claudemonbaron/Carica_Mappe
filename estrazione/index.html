@@ -82,6 +82,10 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent) }
 .piccolo { font-size: .85rem; color: var(--muted); margin: 0 }
 .btn:focus-visible, .seg button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px }
 a { color: var(--accent) }
+.altra { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; margin-top: 8px; padding: 8px 12px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--panel); color: var(--fg); font: 600 .95rem/1 var(--f-disp); text-decoration: none }
+.altra:hover { border-color: var(--accent) }
+.altra b { color: var(--accent); white-space: nowrap }
 footer { font-size: .8rem; color: var(--muted); text-align: center }
 @media (max-width: 440px) { .uscite { grid-template-columns: 1fr } .km { grid-template-columns: repeat(4, 1fr) } .km button { grid-column: 1 / -1 } }
 </style>
@@ -91,6 +95,7 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
   <header>
     <h1>Estrazione <span>Mappe</span></h1>
     <p class="sub">Carta tecnica di un comune e dei vicini: DXF per AutoCAD, GeoPackage e progetto QGIS. Lavora tutto nel browser, con lo stesso programma di Estrarre_Mappe. <span id="info-dati"></span></p>
+    <a class="altra" href="../">Servono le mappe per il GPS Garmin? <b>← Carica Mappe</b></a>
   </header>
 
   <p class="avviso" id="avvio" role="status">Preparo il programma…</p>
@@ -173,7 +178,7 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
 <script data-goatcounter="https://claudemonbaron.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 <script>
 "use strict";
-const VERSIONE = "1.0 (23 ott 2026)";
+const VERSIONE = "1.1 (23 ott 2026)";
 const CHIAVE_API = "AIzaSyA3eA9-4n6jc6llgXn805Pus54awLbTxn0";                                   // la stessa di Carica Mappe (limitata a claudemonbaron.github.io)
 const RADICE = "1Qss5yBi3WuEZ-LSkcJ1TjaKrd8QHeOuu";      // Cartografia_cond sul Drive
 const $ = id => document.getElementById(id);
