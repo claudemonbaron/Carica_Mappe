@@ -179,18 +179,31 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
       <div class="barra" aria-hidden="true"><div id="barra"></div></div>
       <p class="esito" id="esito" role="status"></p>
       <pre class="log" id="log"></pre>
-      <div class="riga"><button type="button" class="btn sec pic" id="b-svuota">Svuota le mappe scaricate</button></div>
     </div>
   </section>
 
-  <footer>Cartografia Garmin · UCS PC ANA PN e PC RFVG · uso gratuito per la protezione civile · <span id="versione"></span></footer>
+  <section aria-labelledby="h-mem">
+    <h2 id="h-mem">Memoria del browser</h2>
+    <div class="stack">
+      <div class="riga"><span class="piccolo" id="mem-info">…</span>
+        <button type="button" class="btn sec pic" id="b-svuota">Libera spazio</button></div>
+      <div class="conferma" id="conf-svuota" hidden>
+        <span id="conf-svuota-testo"></span>
+        <button type="button" class="btn pic" id="b-svuota-si">Sì, cancella</button>
+        <button type="button" class="btn sec pic" id="b-svuota-no">Annulla</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>Cartografia Garmin · UCS PC ANA PN e PC RFVG · uso gratuito per la protezione civile · <span id="versione"></span><br>Visite e caricamenti contati in forma anonima, senza cookie (GoatCounter).</footer>
 </div>
 
+<script data-goatcounter="https://claudemonbaron.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 <script src="unisci.js"></script>
 <script>
 "use strict";
 // ---------------------------------------------------------------- impostazioni
-const VERSIONE = "1.4 (22 ott 2026)";
+const VERSIONE = "1.5 (23 ott 2026)";
 const CHIAVE_API = "AIzaSyA3eA9-4n6jc6llgXn805Pus54awLbTxn0";                                   // chiave API Google (solo Drive API, limitata a questo sito)
 const RADICE = "1Qss5yBi3WuEZ-LSkcJ1TjaKrd8QHeOuu";      // Cartografia_cond sul Drive (link pubblico, sola lettura)
 const INDICE = ["Estrazione_mappe", "_dati", "indice_img.csv"];
@@ -397,6 +410,7 @@ function disegna() {
   $("b-carica").disabled = !sc.length || lavoro || (PUO_SCRIVERE && !gps.pronto);
   $("b-carica").textContent = PUO_SCRIVERE ? (gps.pronto ? "Carica nel GPS" : "Prima scegli il GPS") : (sc.length > 1 ? "Scarica il file unito" : "Scarica il file");
   $("b-scarica").hidden = !PUO_SCRIVERE; $("b-scarica").disabled = !sc.length || lavoro;
+  if (lavoro) { $("b-svuota").disabled = true; $("conf-svuota").hidden = true; }
   $("b-scarica").textContent = (sc.length > 1 ? "Scarica il file unito" : "Scarica il file") + (gps.pronto ? " (senza scriverlo nel GPS)" : " (senza GPS)");
   $("link-diretto").hidden = true;
   if (sc.length === 1) linkDiretto(sc[0]);
@@ -530,12 +544,39 @@ async function carica(soloFile) {
       $("esito").textContent = "Pronto: " + nome + " (" + mb(byte) + " MB, " + tess + " tessere). Trovi il file nei Download: copialo nella cartella Garmin del GPS.";
     }
     $("esito").className = "esito ok"; $("barra").style.width = "100%";
+    conta((nelGps ? "GPS" : "Download") + " · " + MODI[st.com < 0 ? "prov" : st.modo] + " · " + nomeZona(),
+          sc.length + " mappe, " + mb(byte) + " MB, " + tess + " tessere");
   } catch (e) {
     $("esito").textContent = "Non riuscito: " + e.message; $("esito").className = "esito no"; log("ERRORE: " + e.message);
-  } finally { lavoro = false; disegna(); }
+    conta("Errore · " + nomeZona(), String(e.message).slice(0, 200));
+  } finally { lavoro = false; disegna(); memoria(); }
+}
+// ---------------------------------------------------------------- memoria del browser (mappe tenute per non riscaricarle)
+async function memoria() {
+  try {
+    const n = (await (await caches.open("carica-mappe")).keys()).length;
+    let tot = ""; try { const e = await navigator.storage.estimate(); if (e.usage) tot = " (circa " + mb(e.usage) + " MB)"; } catch (e) {}
+    $("mem-info").textContent = n ? n + (n === 1 ? " mappa comunale tenuta" : " mappe comunali tenute") + " per non riscaricarle" + tot + "." : "Nessuna mappa in memoria.";
+    $("b-svuota").disabled = !n || lavoro;
+    return n;
+  } catch (e) { $("mem-info").textContent = "Questo browser non tiene le mappe in memoria."; $("b-svuota").disabled = true; return 0; }
+}
+async function chiediSvuota() {
+  if (lavoro) return;
+  const n = await memoria(); if (!n) return;
+  $("conf-svuota-testo").textContent = "Cancellare le " + n + " mappe in memoria? I file nei Download e nel GPS non si toccano; la prossima volta le mappe si riscaricano dal Drive.";
+  $("conf-svuota").hidden = false;
 }
 async function svuota() {
-  try { await caches.delete("carica-mappe"); log("Mappe scaricate cancellate da questo browser."); } catch (e) { log("Niente da svuotare."); }
+  $("conf-svuota").hidden = true;
+  if (lavoro) return;
+  try { await caches.delete("carica-mappe"); } catch (e) {}
+  await memoria();
+}
+// ---------------------------------------------------------------- statistiche anonime (GoatCounter, senza cookie)
+const MODI = { prov: "Provincia", solo: "Comune", lim: "Limitrofi", ret: "Rettangolo" };
+function conta(percorso, titolo) {
+  try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: percorso, title: titolo, event: true }); } catch (e) {}
 }
 
 // ---------------------------------------------------------------- avvio
@@ -573,7 +614,10 @@ async function avvio() {
   document.querySelectorAll("input[name=dest]").forEach(r => r.addEventListener("change", disegna));
   $("b-carica").addEventListener("click", () => carica(false));
   $("b-scarica").addEventListener("click", () => carica(true));
-  $("b-svuota").addEventListener("click", svuota);
+  $("b-svuota").addEventListener("click", chiediSvuota);
+  $("b-svuota-si").addEventListener("click", svuota);
+  $("b-svuota-no").addEventListener("click", () => $("conf-svuota").hidden = true);
+  memoria();
   if (PUO_SCRIVERE) {
     $("b-gps").addEventListener("click", async () => { if (gps.cart && !gps.pronto && await permesso(gps.cart, true)) return leggiGps(); scegliGps(); });
     $("b-gps-agg").addEventListener("click", leggiGps);
