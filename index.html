@@ -195,7 +195,7 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
     </div>
   </section>
 
-  <footer>Cartografia Garmin · UCS PC ANA PN e PC RFVG · uso gratuito per la protezione civile · <span id="versione"></span><br>Visite e caricamenti contati in forma anonima, senza cookie (GoatCounter).</footer>
+  <footer>Cartografia Garmin · UCS PC ANA PN e PC RFVG · uso gratuito per la protezione civile · <span id="versione"></span><span id="visite" hidden></span><br>Visite e caricamenti contati in forma anonima, senza cookie (GoatCounter).</footer>
 </div>
 
 <script data-goatcounter="https://claudemonbaron.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
@@ -203,7 +203,7 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
 <script>
 "use strict";
 // ---------------------------------------------------------------- impostazioni
-const VERSIONE = "1.5 (23 ott 2026)";
+const VERSIONE = "1.6 (23 ott 2026)";
 const CHIAVE_API = "AIzaSyA3eA9-4n6jc6llgXn805Pus54awLbTxn0";                                   // chiave API Google (solo Drive API, limitata a questo sito)
 const RADICE = "1Qss5yBi3WuEZ-LSkcJ1TjaKrd8QHeOuu";      // Cartografia_cond sul Drive (link pubblico, sola lettura)
 const INDICE = ["Estrazione_mappe", "_dati", "indice_img.csv"];
@@ -575,6 +575,15 @@ async function svuota() {
 }
 // ---------------------------------------------------------------- statistiche anonime (GoatCounter, senza cookie)
 const MODI = { prov: "Provincia", solo: "Comune", lim: "Limitrofi", ret: "Rettangolo" };
+// Contatore visibile: GoatCounter lo da' solo se in Settings e' attivo "Allow adding visitor counts on your website".
+async function visite() {
+  try {
+    const r = await fetch("https://claudemonbaron.goatcounter.com/counter/" + encodeURIComponent(location.pathname) + ".json");
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d && d.count) { $("visite").textContent = " · visite: " + d.count; $("visite").hidden = false; }
+  } catch (e) {}
+}
 function conta(percorso, titolo) {
   try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: percorso, title: titolo, event: true }); } catch (e) {}
 }
@@ -582,6 +591,7 @@ function conta(percorso, titolo) {
 // ---------------------------------------------------------------- avvio
 async function avvio() {
   $("versione").textContent = "versione " + VERSIONE;
+  visite();
   $("gps-si").hidden = !PUO_SCRIVERE; $("gps-no").hidden = PUO_SCRIVERE;
   if (!CHIAVE_API) { $("errore-dati").hidden = false; $("errore-dati").textContent = "Manca la chiave API Google (CHIAVE_API in index.html)."; $("info-dati").textContent = ""; return; }
   try {
