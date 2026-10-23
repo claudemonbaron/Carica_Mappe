@@ -208,7 +208,7 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
 <script>
 "use strict";
 // ---------------------------------------------------------------- impostazioni
-const VERSIONE = "1.7 (23 ott 2026)";
+const VERSIONE = "1.8 (23 ott 2026)";
 const CHIAVE_API = "AIzaSyA3eA9-4n6jc6llgXn805Pus54awLbTxn0";                                   // chiave API Google (solo Drive API, limitata a questo sito)
 const RADICE = "1Qss5yBi3WuEZ-LSkcJ1TjaKrd8QHeOuu";      // Cartografia_cond sul Drive (link pubblico, sola lettura)
 const INDICE = ["Estrazione_mappe", "_dati", "indice_img.csv"];
@@ -220,6 +220,12 @@ const leggi = (k, def) => { try { const v = localStorage.getItem("cm_" + k); ret
 const salva = (k, v) => { try { localStorage.setItem("cm_" + k, JSON.stringify(v)); } catch (e) {} };
 const mb = n => n < 10 * 1048576 ? (n / 1048576).toFixed(1) : Math.round(n / 1048576).toLocaleString("it");
 const bello = p => p.replace(/^Prov/, "").replace(/^[A-Z]{2}_/, "").replace(/([a-zà-ÿ])([A-Z])/g, "$1 $2");
+// Zona condivisa con l'altra pagina (Carica Mappe <-> Estrazione Mappe): provincia, comune, tipo di scelta e km.
+// Le due pagine chiamano diversamente alcune cose: si confrontano provincia e comune "normalizzati".
+const SINONIMI = { monterelevalcellina: "monterealevalcellina", pasiano: "pasianodipordenone", buja: "buia", reanadelrojale: "reanadelroiale" };
+const NZ = s => { const n = String(s || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, ""); return SINONIMI[n] || n; };
+function zonaScrivi(z) { try { localStorage.setItem("zona_mappe", JSON.stringify(Object.assign({ t: Date.now() }, z))); } catch (e) {} }
+function zonaLeggi() { try { return JSON.parse(localStorage.getItem("zona_mappe") || "null"); } catch (e) { return null; } }
 const PUO_SCRIVERE = typeof window.showDirectoryPicker === "function";
 
 // ---------------------------------------------------------------- Drive (chiave API: niente account)
@@ -419,7 +425,8 @@ function disegna() {
   $("b-scarica").textContent = (sc.length > 1 ? "Scarica il file unito" : "Scarica il file") + (gps.pronto ? " (senza scriverlo nel GPS)" : " (senza GPS)");
   $("link-diretto").hidden = true;
   if (sc.length === 1) linkDiretto(sc[0]);
-  salva("stato", { reg: D.r[st.reg][0], prov: D.p[st.prov].nome, com: st.com >= 0 ? D.c[st.com].nome : "", modo: st.modo, km: km(), sd: $("d-sd").checked });
+  salva("stato", { reg: D.r[st.reg][0], prov: D.p[st.prov].nome, com: st.com >= 0 ? D.c[st.com].nome : "", modo: st.modo, km: km(), sd: $("d-sd").checked, t: Date.now() });
+  zonaScrivi({ prov: D.p[st.prov].nome, com: st.com >= 0 ? D.c[st.com].nome : "", modo: { prov: "prov", solo: "solo", lim: "vicini", ret: "ret" }[st.com >= 0 ? st.modo : "prov"], km: km() });
 }
 let ultimoLink = 0;
 async function linkDiretto(v) {
@@ -581,13 +588,13 @@ async function svuota() {
 // ---------------------------------------------------------------- statistiche anonime (GoatCounter, senza cookie)
 const MODI = { prov: "Provincia", solo: "Comune", lim: "Limitrofi", ret: "Rettangolo" };
 // Contatore visibile: GoatCounter lo da' solo se in Settings e' attivo "Allow adding visitor counts on your website".
-async function visite() {
-  try {
-    const r = await fetch("https://claudemonbaron.goatcounter.com/counter/" + encodeURIComponent(location.pathname) + ".json");
-    if (!r.ok) return;
-    const d = await r.json();
-    if (d && d.count) { $("visite").textContent = " · visite: " + d.count; $("visite").hidden = false; }
-  } catch (e) {}
+async function visite() {      // le visite di tutte e due le pagine (GoatCounter: "Allow adding visitor counts")
+  const conta1 = async (p) => { try { const r = await fetch("https://claudemonbaron.goatcounter.com/counter/" + encodeURIComponent(p) + ".json");
+    const d = await r.json(); return d && d.count !== undefined ? d.count : null; } catch (e) { return null; } };
+  const [c, e] = await Promise.all([conta1("/Carica_Mappe/"), conta1("/Carica_Mappe/estrazione/")]);
+  if (c === null && e === null) return;
+  $("visite").textContent = " · visite: Carica Mappe " + (c || "0") + " · Estrazione " + (e || "0");
+  $("visite").hidden = false;
 }
 function conta(percorso, titolo) {
   try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: percorso, title: titolo, event: true }); } catch (e) {}
@@ -608,7 +615,16 @@ async function avvio() {
   } catch (e) {
     $("info-dati").textContent = ""; $("errore-dati").hidden = false; $("errore-dati").textContent = "Non riesco a leggere l'elenco delle mappe dal Drive: " + e.message; return;
   }
-  const s = leggi("stato", null);
+  let s = leggi("stato", null);
+  const z = zonaLeggi();
+  if (z && (!s || (z.t || 0) > (s.t || 0))) {                       // ultima scelta fatta nell'altra pagina
+    const p = D.p.find(x => NZ(x.nome) === NZ(z.prov));
+    if (p) {
+      const c = D.c.find(x => D.p[x.prov] === p && NZ(x.nome) === NZ(z.com));
+      s = Object.assign({}, s || {}, { reg: D.r[p.reg][0], prov: p.nome, com: c ? c.nome : "", km: z.km || (s && s.km),
+            modo: c ? ({ solo: "solo", vicini: "lim", ret: "ret" }[z.modo] || "solo") : "prov" });
+    }
+  }
   const ri = s ? D.r.findIndex(r => r[0] === s.reg) : -1, fvg = D.r.findIndex(r => r[0] === "RFVG");
   st.reg = ri >= 0 ? ri : (fvg >= 0 ? fvg : 0);
   const pi = s ? D.p.findIndex(p => p.nome === s.prov && p.reg === st.reg) : -1;
