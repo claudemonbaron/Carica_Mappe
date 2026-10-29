@@ -178,7 +178,7 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
 <script data-goatcounter="https://claudemonbaron.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 <script>
 "use strict";
-const VERSIONE = "1.3 (23 ott 2026)";
+const VERSIONE = "1.4 (29 ott 2026)";
 const CHIAVE_API = "AIzaSyA3eA9-4n6jc6llgXn805Pus54awLbTxn0";                                   // la stessa di Carica Mappe (limitata a claudemonbaron.github.io)
 const RADICE = "1Qss5yBi3WuEZ-LSkcJ1TjaKrd8QHeOuu";      // Cartografia_cond sul Drive
 const $ = id => document.getElementById(id);
@@ -234,7 +234,7 @@ function pronto(info) {
   $("info-dati").textContent = "Elenchi" + (quando ? " del " + quando : "") + ": " + COMUNI.length.toLocaleString("it") + " comuni.";
   $("versione").textContent = "versione " + VERSIONE + " · programma Estrarre_Mappe " + info.versione;
   const u = $("uscite"); u.innerHTML = "";
-  const scelte = leggi("uscite", info.uscite.map(x => x[0]));
+  const scelte = leggi("uscite", info.uscite.map(x => x[0]).filter(k => !(info.spente || []).includes(k)));   // 29 ott: terreno spento di partenza
   info.uscite.forEach(([k, t]) => { const l = document.createElement("label"); const c = document.createElement("input");
     c.type = "checkbox"; c.id = "u-" + k; c.value = k; c.checked = scelte.includes(k); c.addEventListener("change", () => { salva("uscite", usciteScelte()); controlla(); });
     const s = document.createElement("span"); s.textContent = t; l.append(c, s); u.appendChild(l); });
