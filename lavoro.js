@@ -3,11 +3,13 @@
  * Gira in un Web Worker: carica Python (Pyodide) con ezdxf e pyproj, legge dal Drive (chiave API) il programma
  * Estrarre_Mappe (Estrazione_mappe/Programma/estrarre_mappe.py e gis_lavoro.py) e gli elenchi _dati, e fa
  * l'estrazione con LO STESSO codice dell'app per Mac/Windows. I file prodotti tornano alla pagina.
+ * 29 ott: anche terreno.py; con le caselle "3d" / "terreno" scarica le tessere DTM della zona (DTM_TESSERE).
  * Messaggi dalla pagina: avvio, vicini, rettangolo, prepara, estrai.  Alla pagina: pronto, log, avanza, risposta, errore.
  */
 "use strict";
 const PYODIDE = "https://cdn.jsdelivr.net/pyodide/v0.27.7/full/";
 const EZDXF = "ezdxf==1.4.5";
+const FONT = "https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans.ttf";
 const API = "https://www.googleapis.com/drive/v3/files";
 importScripts(PYODIDE + "pyodide.js");
 
@@ -104,10 +106,20 @@ async function avvio(m) {
   await py.loadPackage(["numpy", "pyproj", "sqlite3", "micropip"]);
   manda("stato", { s: "Carico ezdxf…" });
   await py.runPythonAsync("import micropip\nawait micropip.install('" + EZDXF + "')");
+  // ezdxf misura le scritte con un carattere TrueType: nel browser non ce ne sono ("no default font found").
+  // Gli si da' DejaVu Sans, che e' proprio il suo carattere di riserva.
+  try {
+    const r = await fetch(FONT);
+    if (r.ok) {
+      scrivi("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", new Uint8Array(await r.arrayBuffer()));
+      py.runPython("from ezdxf.fonts import fonts as _f\n_f.font_manager.clear()\n_f.font_manager.build(['/usr/share/fonts'])");
+    }
+  } catch (e) { log("(carattere DejaVu non caricato: le scritte si misurano in modo approssimato)"); }
   manda("stato", { s: "Leggo il programma e gli elenchi dal Drive…" });
   const prog = await elenco((await trova(["Estrazione_mappe", "Programma"])).id);
-  for (const n of ["estrarre_mappe.py", "gis_lavoro.py"]) {
-    const f = prog.get(n); if (!f) throw new Error("sul Drive manca Programma/" + n);
+  for (const n of ["estrarre_mappe.py", "gis_lavoro.py", "terreno.py"]) {
+    const f = prog.get(n);
+    if (!f) { if (n === "terreno.py") continue; throw new Error("sul Drive manca Programma/" + n); }
     scrivi("/prog/" + n, await contenuto(f));
   }
   const dati = await elenco((await trova(["Estrazione_mappe", "_dati"])).id);
@@ -126,7 +138,7 @@ arch = E.Archivio("/dati")
 json.dumps({"versione": E.VERSIONE,
             "regioni": [[k, arch.reg[k]["nome"]] for k in arch.regioni()],
             "comuni": sorted([list(k) for k in arch.elementi]),
-            "uscite": E.USCITE_NOMI})
+            "uscite": E.USCITE_NOMI, "spente": list(getattr(E, "USCITE_SPENTE", ()))})
 `);
   info.dati = quando;
   manda("pronto", info);
@@ -158,9 +170,50 @@ for e in _el:
         _rel.append(cart + "/" + nome.replace("@@@", c))
 json.dumps({"rel": _rel, "elementi": len(_el), "fuso": 33 if _misto else _s0})`);
 }
+async function tessereTerreno(m) {          // 29 ott: tessere DTM della zona, come terreno.prepara() nell'app
+  const u = m.uscite || [], serie = [];
+  if (u.includes("3d")) serie.push("WGS84");
+  if (u.includes("terreno")) serie.push("UTM");     // 30 ott: UTM32 o UTM33, come i DXF (deciso in Python)
+  if (!serie.length) return [];
+  for (const s of serie.flatMap(s => s === "UTM" ? ["UTM32", "UTM33"] : [s])) {
+    const p = "/dati/DTM_TESSERE/indice_" + s + ".csv";
+    if (!esiste(p)) {
+      try { scrivi(p, await contenuto(await trova(["Estrazione_mappe", "DTM_TESSERE", "indice_" + s + ".csv"]))); }
+      catch (e) { log("Terreno " + s + ": indice non trovato sul Drive"); }
+    }
+  }
+  py.globals.set("_t", py.toPy([m.reg, m.prov, m.com, m.aggiunti, m.rett || null, serie]));
+  return pyJson(`
+import terreno as T
+_reg, _prov, _com, _agg, _rt, _ser = _t[0], _t[1], _t[2], [tuple(x) for x in _t[3]], _t[4], list(_t[5])
+_el = arch.lista_elementi(_reg, _prov, _com, _agg)
+_s0 = arch.sistema(_reg)
+_fu = 33 if any(":" in e and arch.sistema(e.split(":")[0]) != _s0 for e in _el) else _s0
+_ser = [("UTM%d" % _fu if s == "UTM" else s) for s in _ser]
+_box = None
+if _rt:
+    _r, _ = E.rettangolo_comune(arch, _reg, _prov, _com, tuple(_rt))
+    _box = tuple(_r) if _r else None
+if _box is None:
+    _d = E.riquadri_gradi(arch)
+    _bb = [_d[k] for k in [(_reg, _prov, _com)] + _agg if k in _d]
+    if _bb:
+        _box = (min(b[0] for b in _bb), min(b[1] for b in _bb), max(b[2] for b in _bb), max(b[3] for b in _bb))
+_out = []
+if _box:
+    for _s in _ser:
+        _p = "/dati/DTM_TESSERE/indice_%s.csv" % _s
+        if not os.path.isfile(_p):
+            continue
+        _b = _box if _s == "WGS84" else T.box_utm32(_box)
+        _m = T.SERIE[_s]["margine"]
+        _out += ["DTM_TESSERE/%s/%s.tif" % (_s, t[0]) for t in T.scegli(T.leggi_indice(_p), (_b[0] - _m, _b[1] - _m, _b[2] + _m, _b[3] + _m))]
+json.dumps(_out)`);
+}
 async function prepara(m) {
   const z = elementiZip(m);
   let byte = 0, mancano = 0, inCache = 0;
+  try { z.rel = z.rel.concat(await tessereTerreno(m)); } catch (e) { log("Terreno: " + e.message); }
   for (const r of z.rel) {
     try { const f = await trova(["Estrazione_mappe"].concat(r.split("/"))); byte += +f.size || 0; } catch (e) { mancano++; }
   }
@@ -173,7 +226,12 @@ async function estrai(m) {
   let fatto = 0, tot = 0;
   const ff = [];
   for (const r of z.rel) { try { const f = await trova(["Estrazione_mappe"].concat(r.split("/"))); ff.push([r, f]); tot += +f.size || 0; } catch (e) { log("  " + r.split("/").pop() + ": non c'e' sul Drive"); } }
-  log("Scarico " + ff.length + " file DXF dal Drive (" + Math.round(tot / 1048576) + " MB)…");
+  const nDxf = ff.length; let tTer = 0;
+  let tt = [];
+  try { tt = await tessereTerreno(m); } catch (e) { log("Terreno: " + e.message); }
+  for (const r of tt) { try { const f = await trova(["Estrazione_mappe"].concat(r.split("/"))); ff.push([r, f]); tot += +f.size || 0; tTer += +f.size || 0; } catch (e) { log("  " + r.split("/").pop() + ": non c'e' sul Drive"); } }
+  log("Scarico " + nDxf + " file DXF" + (ff.length > nDxf ? " e " + (ff.length - nDxf) + " tessere del terreno (" + Math.round(tTer / 1048576) + " MB)" : "") +
+      " dal Drive (" + Math.round(tot / 1048576) + " MB in tutto)…");
   for (const [r, f] of ff) {
     const p = "/dati/" + r;
     if (!esiste(p)) {
