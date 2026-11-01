@@ -171,6 +171,19 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
     </div>
   </section>
 
+  <section aria-labelledby="h-cache">
+    <h2 id="h-cache" class="piccolo">File già scaricati in questo browser</h2>
+    <div class="riga">
+      <button type="button" class="btn sec pic" id="b-svuota">Svuota la cache</button>
+      <span class="piccolo" id="cache-info"></span>
+    </div>
+    <div class="conferma" id="conf-svuota" hidden>
+      <span>Cancellare i DXF e le tessere del terreno già scaricati in questo browser? Alla prossima estrazione si riscaricano dal Drive. Le estrazioni già salvate non si toccano.</span>
+      <div class="riga"><button type="button" class="btn pic" id="b-svuota-si">Sì, svuota</button>
+        <button type="button" class="btn sec pic" id="b-svuota-no">Annulla</button></div>
+    </div>
+  </section>
+
   <footer>Cartografia · UCS PC ANA PN e PC RFVG · uso gratuito per la protezione civile · <a href="../">Carica Mappe (GPS Garmin)</a><br>
     <span id="versione"></span><span id="visite" hidden></span> · Visite ed estrazioni contate in forma anonima, senza cookie (GoatCounter).</footer>
 </div>
@@ -178,7 +191,7 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
 <script data-goatcounter="https://claudemonbaron.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 <script>
 "use strict";
-const VERSIONE = "1.5 (30 ott 2026)";
+const VERSIONE = "1.6 (1 nov 2026)";
 const CHIAVE_API = "AIzaSyA3eA9-4n6jc6llgXn805Pus54awLbTxn0";                                   // la stessa di Carica Mappe (limitata a claudemonbaron.github.io)
 const RADICE = "1Qss5yBi3WuEZ-LSkcJ1TjaKrd8QHeOuu";      // Cartografia_cond sul Drive
 const $ = id => document.getElementById(id);
@@ -390,6 +403,18 @@ async function estrai(confermato) {
   } finally { st.lavoro = false; $("barra-box").classList.remove("lavora"); controlla(); }
 }
 
+async function infoCache() {      // quanto occupa la cache dei file scaricati (stima del browser)
+  try {
+    const c = await caches.open("estrazione-mappe"), k = await c.keys();
+    let t = k.length ? k.length + " file" : "vuota";
+    if (k.length && navigator.storage && navigator.storage.estimate) {
+      const e = await navigator.storage.estimate();
+      if (e.usage) t += ", circa " + mb(e.usage) + " MB";
+    }
+    $("cache-info").textContent = "Cache: " + t + ".";
+  } catch (e) { $("cache-info").textContent = ""; }
+}
+
 // ---------------------------------------------------------------- statistiche anonime
 function conta(percorso, titolo) { try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: percorso, title: titolo, event: true }); } catch (e) {} }
 async function visite() {      // le visite di tutte e due le pagine (GoatCounter: "Allow adding visitor counts")
@@ -416,6 +441,17 @@ async function visite() {      // le visite di tutte e due le pagine (GoatCounte
   $("b-trova").addEventListener("click", aggiorna);
   ["n", "s", "e", "o"].forEach(k => $("km-" + k).addEventListener("change", aggiorna));
   $("b-estrai").addEventListener("click", () => estrai(false));
+  // 1 nov: svuota la cache del browser (DXF e tessere gia' scaricati), con conferma
+  infoCache();
+  $("b-svuota").addEventListener("click", () => { if (st.lavoro) return; $("conf-svuota").hidden = false; $("b-svuota").hidden = true; });
+  $("b-svuota-no").addEventListener("click", () => { $("conf-svuota").hidden = true; $("b-svuota").hidden = false; });
+  $("b-svuota-si").addEventListener("click", async () => {
+    $("conf-svuota").hidden = true; $("b-svuota").hidden = false;
+    try { await caches.delete("estrazione-mappe"); } catch (e) {}
+    try { await chiedi("svuota"); } catch (e) {}
+    $("cache-info").textContent = "Cache svuotata.";
+    setTimeout(infoCache, 1500);
+  });
   $("b-mob-si").addEventListener("click", () => estrai(true));
   $("b-mob-no").addEventListener("click", () => { $("conf-mobile").hidden = true; $("b-estrai").hidden = false; });
   if (PUO_SCRIVERE) {
