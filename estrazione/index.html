@@ -69,6 +69,7 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent) }
 .btn.sec { background: transparent; color: var(--fg); border-color: var(--line); font-weight: 600; font-size: 1rem; padding: 12px }
 .btn.pic { display: inline-block; width: auto; padding: 8px 12px; font-size: .95rem }
 .btn:disabled { opacity: .45; cursor: default }
+a.btn { text-decoration: none }   /* 2 nov: link ai PDF con l'aspetto dei pulsanti */
 .riga { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
 .conferma { display: flex; flex-direction: column; gap: 10px; background: var(--warn-soft); border-left: 3px solid var(--warn); padding: 12px; border-radius: 6px; font-size: .95rem }
 .barra { height: 8px; background: var(--bar); border-radius: 4px; overflow: hidden }
@@ -87,83 +88,89 @@ a { color: var(--accent) }
 .altra:hover { border-color: var(--accent) }
 .altra b { color: var(--accent); white-space: nowrap }
 footer { font-size: .8rem; color: var(--muted); text-align: center }
+.lingua { align-self: flex-end; display: flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted) }   /* 2 nov */
+.lingua select { width: auto; padding: 6px 8px }
 @media (max-width: 440px) { .uscite { grid-template-columns: 1fr } .km { grid-template-columns: repeat(4, 1fr) } .km button { grid-column: 1 / -1 } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
+    <label class="lingua"><span data-t="lingua">Lingua</span><select id="sel-lingua"></select></label>
     <h1>Estrazione <span>Mappe</span></h1>
-    <p class="sub">Carta tecnica di un comune e dei vicini: DXF per AutoCAD, GeoPackage e progetto QGIS. Lavora tutto nel browser, con lo stesso programma di Estrarre_Mappe. <span id="info-dati"></span></p>
-    <a class="altra" href="../">Servono le mappe per il GPS Garmin? <b>← Carica Mappe</b></a>
+    <p class="sub"><span data-t="sub">Carta tecnica di un comune e dei vicini: DXF per AutoCAD, GeoPackage e progetto QGIS. Lavora tutto nel browser, con lo stesso programma di Estrarre_Mappe.</span> <span id="info-dati"></span></p>
+    <a class="altra" href="../"><span data-t="altra">Servono le mappe per il GPS Garmin?</span> <b>← Carica Mappe</b></a>
+    <div class="riga" style="margin-top:10px">
+      <a class="btn sec pic" href="istruzioni_it.pdf" data-pdf="istruzioni" target="_blank" rel="noopener" data-t="pdfIstr">Istruzioni e dichiarazione di responsabilità (PDF)</a>
+    </div>
   </header>
 
-  <p class="avviso" id="avvio" role="status">Preparo il programma…</p>
+  <p class="avviso" id="avvio" role="status" data-t="avvio">Preparo il programma…</p>
 
   <section aria-labelledby="h-zona">
-    <h2 id="h-zona">1 · Comune</h2>
+    <h2 id="h-zona" data-t="h1">1 · Comune</h2>
     <div class="stack">
       <div class="grid2">
-        <label class="f">Regione / Paese<select id="sel-reg" disabled></select></label>
-        <label class="f">Provincia / Land / Cantone<select id="sel-prov" disabled></select></label>
+        <label class="f"><span data-t="regione">Regione / Paese</span><select id="sel-reg" disabled></select></label>
+        <label class="f"><span data-t="provincia">Provincia / Land / Cantone</span><select id="sel-prov" disabled></select></label>
       </div>
-      <label class="f">Comune
-        <input type="search" id="cerca" list="lista-comuni" placeholder="Scrivi il nome del comune" autocomplete="off" disabled>
+      <label class="f"><span data-t="comune">Comune</span>
+        <input type="search" id="cerca" list="lista-comuni" placeholder="Scrivi il nome del comune" data-t-ph="cercaPh" autocomplete="off" disabled>
         <datalist id="lista-comuni"></datalist>
       </label>
     </div>
   </section>
 
   <section aria-labelledby="h-agg">
-    <h2 id="h-agg">2 · Comuni in più</h2>
+    <h2 id="h-agg" data-t="h2">2 · Comuni in più</h2>
     <div class="stack">
-      <div class="seg" role="group" aria-label="Comuni in più">
-        <button type="button" data-m="solo" aria-pressed="true">Solo il comune</button>
-        <button type="button" data-m="conf">Confinanti</button>
-        <button type="button" data-m="ret">Rettangolo</button>
+      <div class="seg" role="group" aria-label="Comuni in più" data-t-al="h2">
+        <button type="button" data-m="solo" aria-pressed="true" data-t="solo">Solo il comune</button>
+        <button type="button" data-m="conf" data-t="conf">Confinanti</button>
+        <button type="button" data-m="ret" data-t="ret">Rettangolo</button>
       </div>
       <div class="km" id="km" hidden>
         <label class="f">N km<input type="number" id="km-n" min="0" max="50" step="1" value="5"></label>
         <label class="f">S km<input type="number" id="km-s" min="0" max="50" step="1" value="5"></label>
         <label class="f">E km<input type="number" id="km-e" min="0" max="50" step="1" value="5"></label>
-        <label class="f">O km<input type="number" id="km-o" min="0" max="50" step="1" value="5"></label>
-        <button type="button" class="btn sec pic" id="b-trova">Trova comuni</button>
+        <label class="f"><span data-t="ovest">O km</span><input type="number" id="km-o" min="0" max="50" step="1" value="5"></label>
+        <button type="button" class="btn sec pic" id="b-trova" data-t="trova">Trova comuni</button>
       </div>
-      <ul class="lista" id="lista"><li class="vuota">Scegli un comune.</li></ul>
+      <ul class="lista" id="lista"><li class="vuota" data-t="scegliCom">Scegli un comune.</li></ul>
       <p class="piccolo" id="t-sel"></p>
     </div>
   </section>
 
   <section aria-labelledby="h-usc">
-    <h2 id="h-usc">3 · Cosa preparare</h2>
+    <h2 id="h-usc" data-t="h3">3 · Cosa preparare</h2>
     <div class="uscite" id="uscite"></div>
   </section>
 
   <section aria-labelledby="h-salva">
-    <h2 id="h-salva">4 · Estrai e salva</h2>
+    <h2 id="h-salva" data-t="h4">4 · Estrai e salva</h2>
     <div class="stack">
       <div class="riepilogo">
-        <div><b id="r-com">–</b><span>comuni</span></div>
-        <div><b id="r-tav">–</b><span>file DXF</span></div>
-        <div><b id="r-mb">–</b><span>MB da scaricare</span></div>
+        <div><b id="r-com">–</b><span data-t="rCom">comuni</span></div>
+        <div><b id="r-tav">–</b><span data-t="rTav">file DXF</span></div>
+        <div><b id="r-mb">–</b><span data-t="rMb">MB da scaricare</span></div>
       </div>
       <p class="avviso" id="avviso-peso" hidden></p>
       <p class="piccolo" id="dove"></p>
       <div class="riga" id="riga-cartella" hidden>
-        <button type="button" class="btn sec pic" id="b-cartella">Scegli dove salvare (es. Download)</button>
+        <button type="button" class="btn sec pic" id="b-cartella" data-t="bCartella">Scegli dove salvare (es. Download)</button>
         <span class="piccolo" id="cartella-nome"></span>
       </div>
       <div class="conferma" id="conf-mobile" hidden>
         <span id="conf-mobile-testo"></span>
-        <div class="riga"><button type="button" class="btn pic" id="b-mob-si">Sì, estrai lo stesso</button>
-          <button type="button" class="btn sec pic" id="b-mob-no">Annulla</button></div>
+        <div class="riga"><button type="button" class="btn pic" id="b-mob-si" data-t="siLoStesso">Sì, estrai lo stesso</button>
+          <button type="button" class="btn sec pic" id="b-mob-no" data-t="annulla">Annulla</button></div>
       </div>
       <button type="button" class="btn" id="b-estrai" disabled>Estrai</button>
     </div>
   </section>
 
   <section aria-labelledby="h-av" id="sez-av" hidden>
-    <h2 id="h-av">5 · Avanzamento</h2>
+    <h2 id="h-av" data-t="h5">5 · Avanzamento</h2>
     <div class="stack">
       <div class="barra" id="barra-box" aria-hidden="true"><div id="barra"></div></div>
       <p class="esito" id="esito" role="status"></p>
@@ -171,21 +178,201 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
     </div>
   </section>
 
-  <footer>Cartografia · UCS PC ANA PN e PC RFVG · uso gratuito per la protezione civile · <a href="../">Carica Mappe (GPS Garmin)</a><br>
-    <span id="versione"></span><span id="visite" hidden></span> · Visite ed estrazioni contate in forma anonima, senza cookie (GoatCounter).</footer>
+  <section aria-labelledby="h-cache">
+    <h2 id="h-cache" class="piccolo" data-t="hCache">File già scaricati in questo browser</h2>
+    <div class="riga">
+      <button type="button" class="btn sec pic" id="b-svuota" data-t="svuota">Svuota la cache</button>
+      <span class="piccolo" id="cache-info"></span>
+    </div>
+    <div class="conferma" id="conf-svuota" hidden>
+      <span data-t="svuotaConf">Cancellare i DXF e le tessere del terreno già scaricati in questo browser? Alla prossima estrazione si riscaricano dal Drive. Le estrazioni già salvate non si toccano.</span>
+      <div class="riga"><button type="button" class="btn pic" id="b-svuota-si" data-t="siSvuota">Sì, svuota</button>
+        <button type="button" class="btn sec pic" id="b-svuota-no" data-t="annulla">Annulla</button></div>
+    </div>
+  </section>
+
+  <footer><span data-t="footer">Cartografia · UCS PC ANA PN e PC RFVG · uso gratuito per la protezione civile ·</span> <a href="../" data-t="footerCaricaLink">Carica Mappe (GPS Garmin)</a><br>
+    <span id="versione"></span><span id="visite" hidden></span><span data-t="footer2"> · Visite ed estrazioni contate in forma anonima, senza cookie (GoatCounter).</span></footer>
 </div>
 
 <script data-goatcounter="https://claudemonbaron.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 <script>
 "use strict";
-const VERSIONE = "1.4 (29 ott 2026)";
+const VERSIONE = "1.7 (2 nov 2026)";
+// ---------------------------------------------------------------- lingua (2 nov 2026)
+// La lingua scelta vale per tutte e due le pagine (localStorage "lingua_mappe"). Testi: {0} {1} ... = valori.
+const LINGUE = [["it", "Italiano"], ["en", "English"], ["fr", "Français"], ["de", "Deutsch"], ["es", "Español"]];
+const I18N = {
+  sub: ["Carta tecnica di un comune e dei vicini: DXF per AutoCAD, GeoPackage e progetto QGIS. Lavora tutto nel browser, con lo stesso programma di Estrarre_Mappe.",
+        "Technical map of a municipality and its neighbours: DXF for AutoCAD, GeoPackage and QGIS project. Everything runs in the browser, with the same program as Estrarre_Mappe.",
+        "Carte technique d'une commune et de ses voisines : DXF pour AutoCAD, GeoPackage et projet QGIS. Tout se fait dans le navigateur, avec le même programme qu'Estrarre_Mappe.",
+        "Technische Karte einer Gemeinde und ihrer Nachbarn: DXF für AutoCAD, GeoPackage und QGIS-Projekt. Alles läuft im Browser, mit demselben Programm wie Estrarre_Mappe.",
+        "Cartografía técnica de un municipio y sus vecinos: DXF para AutoCAD, GeoPackage y proyecto QGIS. Todo funciona en el navegador, con el mismo programa que Estrarre_Mappe."],
+  altra: ["Servono le mappe per il GPS Garmin?", "Need maps for a Garmin GPS?", "Besoin de cartes pour un GPS Garmin ?", "Karten für ein Garmin-GPS?", "¿Necesitas mapas para el GPS Garmin?"],
+  pdfIstr: ["Istruzioni e dichiarazione di responsabilità (PDF)", "Instructions and disclaimer (PDF)", "Mode d'emploi et décharge de responsabilité (PDF)",
+            "Anleitung und Haftungsausschluss (PDF)", "Instrucciones y exención de responsabilidad (PDF)"],
+  pdfDich: ["Fonti e dichiarazione di responsabilità (PDF)", "Sources and disclaimer (PDF)", "Sources et décharge de responsabilité (PDF)", "Quellen und Haftungsausschluss (PDF)", "Fuentes y exención de responsabilidad (PDF)"],
+  lingua: ["Lingua", "Language", "Langue", "Sprache", "Idioma"],
+  avvio: ["Preparo il programma…", "Preparing the program…", "Préparation du programme…", "Programm wird vorbereitet…", "Preparo el programa…"],
+  avvioMob: ["Preparo il programma… (su telefono e tablet ci vuole un po' di più)", "Preparing the program… (takes a bit longer on phones and tablets)",
+             "Préparation du programme… (un peu plus long sur téléphone et tablette)", "Programm wird vorbereitet… (auf Handy und Tablet etwas länger)",
+             "Preparo el programa… (en teléfono y tableta tarda un poco más)"],
+  h1: ["1 · Comune", "1 · Municipality", "1 · Commune", "1 · Gemeinde", "1 · Municipio"],
+  regione: ["Regione / Paese", "Region / Country", "Région / Pays", "Region / Land", "Región / País"],
+  provincia: ["Provincia / Land / Cantone", "Province / Land / Canton", "Province / Land / Canton", "Provinz / Land / Kanton", "Provincia / Land / Cantón"],
+  comune: ["Comune", "Municipality", "Commune", "Gemeinde", "Municipio"],
+  cercaPh: ["Scrivi il nome del comune", "Type the municipality name", "Écrire le nom de la commune", "Gemeindenamen eingeben", "Escribe el nombre del municipio"],
+  h2: ["2 · Comuni in più", "2 · Additional municipalities", "2 · Communes en plus", "2 · Weitere Gemeinden", "2 · Municipios adicionales"],
+  solo: ["Solo il comune", "Only the municipality", "Seulement la commune", "Nur die Gemeinde", "Solo el municipio"],
+  conf: ["Confinanti", "Neighbours", "Voisines", "Nachbarn", "Limítrofes"],
+  ret: ["Rettangolo", "Rectangle", "Rectangle", "Rechteck", "Rectángulo"],
+  ovest: ["O km", "W km", "O km", "W km", "O km"],
+  trova: ["Trova comuni", "Find municipalities", "Trouver les communes", "Gemeinden suchen", "Buscar municipios"],
+  scegliCom: ["Scegli un comune.", "Choose a municipality.", "Choisir une commune.", "Gemeinde wählen.", "Elige un municipio."],
+  nessunConf: ["Nessun confinante con dati.", "No neighbour with data.", "Aucune voisine avec des données.", "Keine Nachbargemeinde mit Daten.", "Ningún limítrofe con datos."],
+  nessunRet: ["Nessun comune nel rettangolo: aumenta i km e premi Trova comuni.", "No municipality in the rectangle: increase the km and press Find municipalities.",
+              "Aucune commune dans le rectangle : augmenter les km et cliquer sur Trouver les communes.", "Keine Gemeinde im Rechteck: km erhöhen und Gemeinden suchen drücken.",
+              "Ningún municipio en el rectángulo: aumenta los km y pulsa Buscar municipios."],
+  selez: ["Selezionati {0} comuni su {1} (oltre a {2}).", "{0} of {1} municipalities selected (besides {2}).", "{0} communes sur {1} sélectionnées (en plus de {2}).",
+          "{0} von {1} Gemeinden gewählt (zusätzlich zu {2}).", "Seleccionados {0} municipios de {1} (además de {2})."],
+  tanti: [" Tanti comuni: l'estrazione sarà lunga e pesante.", " Many municipalities: the extraction will be long and heavy.", " Beaucoup de communes : l'extraction sera longue et lourde.",
+          " Viele Gemeinden: der Auszug wird lang und groß.", " Muchos municipios: la extracción será larga y pesada."],
+  h3: ["3 · Cosa preparare", "3 · What to prepare", "3 · Que préparer", "3 · Was vorbereiten", "3 · Qué preparar"],
+  h4: ["4 · Estrai e salva", "4 · Extract and save", "4 · Extraire et enregistrer", "4 · Auszug erstellen und speichern", "4 · Extraer y guardar"],
+  rCom: ["comuni", "municipalities", "communes", "Gemeinden", "municipios"],
+  rTav: ["file DXF", "DXF files", "fichiers DXF", "DXF-Dateien", "archivos DXF"],
+  rMb: ["MB da scaricare", "MB to download", "Mo à télécharger", "MB herunterzuladen", "MB que descargar"],
+  bCartella: ["Scegli dove salvare (es. Download)", "Choose where to save (e.g. Downloads)", "Choisir où enregistrer (ex. Téléchargements)", "Speicherort wählen (z. B. Downloads)", "Elige dónde guardar (p. ej. Descargas)"],
+  siLoStesso: ["Sì, estrai lo stesso", "Yes, extract anyway", "Oui, extraire quand même", "Ja, trotzdem erstellen", "Sí, extraer igualmente"],
+  annulla: ["Annulla", "Cancel", "Annuler", "Abbrechen", "Cancelar"],
+  estrai: ["Estrai", "Extract", "Extraire", "Auszug erstellen", "Extraer"],
+  primaScegli: ["Prima scegli dove salvare", "First choose where to save", "Choisir d'abord où enregistrer", "Zuerst Speicherort wählen", "Primero elige dónde guardar"],
+  h5: ["5 · Avanzamento", "5 · Progress", "5 · Avancement", "5 · Fortschritt", "5 · Progreso"],
+  hCache: ["File già scaricati in questo browser", "Files already downloaded in this browser", "Fichiers déjà téléchargés dans ce navigateur", "Bereits in diesem Browser geladene Dateien", "Archivos ya descargados en este navegador"],
+  svuota: ["Svuota la cache", "Empty the cache", "Vider le cache", "Cache leeren", "Vaciar la caché"],
+  svuotaConf: ["Cancellare i DXF e le tessere del terreno già scaricati in questo browser? Alla prossima estrazione si riscaricano dal Drive. Le estrazioni già salvate non si toccano.",
+               "Delete the DXF files and terrain tiles already downloaded in this browser? They are downloaded again from Drive at the next extraction. Saved extractions are not touched.",
+               "Effacer les DXF et les tuiles de terrain déjà téléchargés dans ce navigateur ? Ils seront retéléchargés du Drive à la prochaine extraction. Les extractions enregistrées ne sont pas touchées.",
+               "Die bereits in diesem Browser geladenen DXF und Geländekacheln löschen? Beim nächsten Auszug werden sie neu vom Drive geladen. Gespeicherte Auszüge bleiben unberührt.",
+               "¿Borrar los DXF y las teselas de terreno ya descargados en este navegador? Se vuelven a descargar del Drive en la próxima extracción. Las extracciones guardadas no se tocan."],
+  siSvuota: ["Sì, svuota", "Yes, empty it", "Oui, vider", "Ja, leeren", "Sí, vaciar"],
+  cacheVuota: ["vuota", "empty", "vide", "leer", "vacía"],
+  cacheFile: ["{0} file", "{0} files", "{0} fichiers", "{0} Dateien", "{0} archivos"],
+  cacheCirca: [", circa {0} MB", ", about {0} MB", ", environ {0} Mo", ", etwa {0} MB", ", unos {0} MB"],
+  cacheInfo: ["Cache: {0}.", "Cache: {0}.", "Cache : {0}.", "Cache: {0}.", "Caché: {0}."],
+  cacheSvuotata: ["Cache svuotata.", "Cache emptied.", "Cache vidé.", "Cache geleert.", "Caché vaciada."],
+  footer: ["Cartografia · UCS PC ANA PN e PC RFVG · uso gratuito per la protezione civile ·", "Cartography · UCS PC ANA PN and PC RFVG · free use for civil protection ·",
+           "Cartographie · UCS PC ANA PN et PC RFVG · usage gratuit pour la protection civile ·", "Kartografie · UCS PC ANA PN und PC RFVG · kostenlos für den Zivilschutz ·",
+           "Cartografía · UCS PC ANA PN y PC RFVG · uso gratuito para protección civil ·"],
+  footerCaricaLink: ["Carica Mappe (GPS Garmin)", "Carica Mappe (Garmin GPS)", "Carica Mappe (GPS Garmin)", "Carica Mappe (Garmin-GPS)", "Carica Mappe (GPS Garmin)"],
+  footer2: [" · Visite ed estrazioni contate in forma anonima, senza cookie (GoatCounter).", " · Visits and extractions counted anonymously, without cookies (GoatCounter).",
+            " · Visites et extractions comptées de façon anonyme, sans cookies (GoatCounter).", " · Besuche und Auszüge werden anonym gezählt, ohne Cookies (GoatCounter).",
+            " · Visitas y extracciones contadas de forma anónima, sin cookies (GoatCounter)."],
+  versione: ["versione {0}", "version {0}", "version {0}", "Version {0}", "versión {0}"],
+  programma: [" · programma Estrarre_Mappe {0}", " · Estrarre_Mappe program {0}", " · programme Estrarre_Mappe {0}", " · Programm Estrarre_Mappe {0}", " · programa Estrarre_Mappe {0}"],
+  visite: [" · visite: Carica Mappe {0} · Estrazione {1}", " · visits: Carica Mappe {0} · Estrazione {1}", " · visites : Carica Mappe {0} · Estrazione {1}", " · Besuche: Carica Mappe {0} · Estrazione {1}", " · visitas: Carica Mappe {0} · Estrazione {1}"],
+  elenchi: ["Elenchi{0}: {1} comuni.", "Lists{0}: {1} municipalities.", "Listes{0} : {1} communes.", "Listen{0}: {1} Gemeinden.", "Listas{0}: {1} municipios."],
+  del: [" del {0}", " of {0}", " du {0}", " vom {0}", " del {0}"],
+  nonPartito: ["Il programma non è partito: {0}", "The program did not start: {0}", "Le programme n'a pas démarré : {0}", "Das Programm ist nicht gestartet: {0}", "El programa no arrancó: {0}"],
+  nonPartitoBrowser: ["Il programma non è partito ({0}). Serve un browser recente: Chrome, Edge, Safari o Firefox.", "The program did not start ({0}). A recent browser is needed: Chrome, Edge, Safari or Firefox.",
+                      "Le programme n'a pas démarré ({0}). Il faut un navigateur récent : Chrome, Edge, Safari ou Firefox.", "Das Programm ist nicht gestartet ({0}). Ein aktueller Browser wird benötigt: Chrome, Edge, Safari oder Firefox.",
+                      "El programa no arrancó ({0}). Hace falta un navegador reciente: Chrome, Edge, Safari o Firefox."],
+  doveCart: ["Il risultato va nella cartella «{0}» dentro «{1}».", "The result goes into the folder «{0}» inside «{1}».", "Le résultat va dans le dossier « {0} » dans « {1} ».",
+             "Das Ergebnis kommt in den Ordner „{0}“ in „{1}“.", "El resultado va en la carpeta «{0}» dentro de «{1}»."],
+  doveScegli: ["Scegli la cartella dove creare «{0}» (per esempio Download).", "Choose the folder where «{0}» will be created (for example Downloads).",
+               "Choisir le dossier où créer « {0} » (par exemple Téléchargements).", "Ordner wählen, in dem „{0}“ entsteht (zum Beispiel Downloads).",
+               "Elige la carpeta donde crear «{0}» (por ejemplo Descargas)."],
+  doveZip: ["Il risultato arriva come «{0}.zip» nei Download: dentro c'è la cartella «{0}».", "The result arrives as «{0}.zip» in Downloads: inside is the folder «{0}».",
+            "Le résultat arrive en « {0}.zip » dans Téléchargements : dedans il y a le dossier « {0} ».", "Das Ergebnis kommt als „{0}.zip“ in die Downloads: darin ist der Ordner „{0}“.",
+            "El resultado llega como «{0}.zip» en Descargas: dentro está la carpeta «{0}»."],
+  grande: ["Estrazione grande: nel browser ci vorranno {0} e molta memoria", "Large extraction: in the browser it will take {0} and a lot of memory",
+           "Grosse extraction : dans le navigateur il faudra {0} et beaucoup de mémoire", "Großer Auszug: im Browser dauert es {0} und braucht viel Speicher",
+           "Extracción grande: en el navegador tardará {0} y mucha memoria"],
+  grandeApp: [". Con l'app Estrarre_Mappe sul computer è molto più veloce e sicura.", ". With the Estrarre_Mappe app on the computer it is much faster and safer.",
+              ". Avec l'application Estrarre_Mappe sur l'ordinateur c'est beaucoup plus rapide et sûr.", ". Mit der App Estrarre_Mappe auf dem Computer geht es viel schneller und sicherer.",
+              ". Con la app Estrarre_Mappe en el ordenador es mucho más rápido y seguro."],
+  grandeAperta: [". Tieni la pagina aperta fino alla fine.", ". Keep the page open until the end.", ". Garder la page ouverte jusqu'à la fin.", ". Die Seite bis zum Ende offen lassen.", ". Mantén la página abierta hasta el final."],
+  secondi: ["{0} secondi", "{0} seconds", "{0} secondes", "{0} Sekunden", "{0} segundos"],
+  minuti: ["circa {0} minuti", "about {0} minutes", "environ {0} minutes", "etwa {0} Minuten", "unos {0} minutos"],
+  cartella: ["Cartella: {0}", "Folder: {0}", "Dossier : {0}", "Ordner: {0}", "Carpeta: {0}"],
+  cartellaPerm: ["Cartella: {0} (cliccare Estrai chiederà il permesso, se serve)", "Folder: {0} (clicking Extract will ask for permission if needed)",
+                 "Dossier : {0} (cliquer sur Extraire demandera l'autorisation si besoin)", "Ordner: {0} (Auszug erstellen fragt bei Bedarf nach der Erlaubnis)",
+                 "Carpeta: {0} (al pulsar Extraer se pedirá permiso si hace falta)"],
+  scarico: ["Scarico i DXF dal Drive: {0} di {1} MB…", "Downloading the DXF from Drive: {0} of {1} MB…", "Téléchargement des DXF depuis le Drive : {0} sur {1} Mo…",
+            "Lade die DXF vom Drive: {0} von {1} MB…", "Descargo los DXF del Drive: {0} de {1} MB…"],
+  elaboro: ["Elaboro: ritaglio, unione, reticolo e versioni (può volerci qualche minuto)…", "Processing: clipping, merging, grid and versions (may take a few minutes)…",
+            "Traitement : découpage, fusion, grille et versions (cela peut prendre quelques minutes)…", "Verarbeitung: Zuschnitt, Zusammenführung, Gitter und Versionen (kann einige Minuten dauern)…",
+            "Proceso: recorte, unión, cuadrícula y versiones (puede tardar unos minutos)…"],
+  mobile: ["Stai usando un telefono o un tablet. Il risultato (DXF per AutoCAD, progetto QGIS) si apre al computer; sul telefono serve solo il GeoPackage, in QField.",
+           "You are using a phone or tablet. The result (DXF for AutoCAD, QGIS project) is opened on a computer; on the phone only the GeoPackage is useful, in QField.",
+           "Vous utilisez un téléphone ou une tablette. Le résultat (DXF pour AutoCAD, projet QGIS) s'ouvre sur ordinateur ; sur le téléphone seul le GeoPackage sert, dans QField.",
+           "Sie verwenden ein Handy oder Tablet. Das Ergebnis (DXF für AutoCAD, QGIS-Projekt) wird am Computer geöffnet; auf dem Handy nützt nur das GeoPackage, in QField.",
+           "Estás usando un teléfono o una tableta. El resultado (DXF para AutoCAD, proyecto QGIS) se abre en el ordenador; en el teléfono solo sirve el GeoPackage, en QField."],
+  mobileGrande: [" Questa estrazione è grande per un telefono ({0} MB da scaricare): potrebbe bloccarsi per mancanza di memoria.", " This extraction is large for a phone ({0} MB to download): it may stop for lack of memory.",
+                 " Cette extraction est grosse pour un téléphone ({0} Mo à télécharger) : elle pourrait se bloquer par manque de mémoire.", " Dieser Auszug ist groß für ein Handy ({0} MB herunterzuladen): er könnte wegen Speichermangel hängen bleiben.",
+                 " Esta extracción es grande para un teléfono ({0} MB que descargar): podría bloquearse por falta de memoria."],
+  moltoGrande: ["Estrazione molto grande: {0} MB da scaricare, {1} di calcolo e diversi GB di memoria. Con l'app Estrarre_Mappe sul computer è molto più veloce.",
+                "Very large extraction: {0} MB to download, {1} of processing and several GB of memory. With the Estrarre_Mappe app on the computer it is much faster.",
+                "Très grosse extraction : {0} Mo à télécharger, {1} de calcul et plusieurs Go de mémoire. Avec l'application Estrarre_Mappe sur l'ordinateur c'est beaucoup plus rapide.",
+                "Sehr großer Auszug: {0} MB herunterzuladen, {1} Rechenzeit und mehrere GB Speicher. Mit der App Estrarre_Mappe auf dem Computer geht es viel schneller.",
+                "Extracción muy grande: {0} MB que descargar, {1} de cálculo y varios GB de memoria. Con la app Estrarre_Mappe en el ordenador es mucho más rápido."],
+  vuoiLoStesso: [" Vuoi estrarre lo stesso?", " Extract anyway?", " Extraire quand même ?", " Trotzdem erstellen?", " ¿Quieres extraer igualmente?"],
+  permesso: ["Senza il permesso di scrivere nella cartella non posso salvare: sceglila di nuovo.", "Without permission to write in the folder I cannot save: choose it again.",
+             "Sans l'autorisation d'écrire dans le dossier je ne peux pas enregistrer : le choisir à nouveau.", "Ohne Schreibrecht im Ordner kann ich nicht speichern: bitte erneut wählen.",
+             "Sin permiso para escribir en la carpeta no puedo guardar: elígela de nuevo."],
+  comincio: ["Comincio…", "Starting…", "Je commence…", "Beginne…", "Empiezo…"],
+  fattoZip: ["Fatto in {0} s: «{1}.zip» nei Download ({2} file, {3} MB). Aprilo per avere la cartella «{1}».", "Done in {0} s: «{1}.zip» in Downloads ({2} files, {3} MB). Open it to get the folder «{1}».",
+             "Terminé en {0} s : « {1}.zip » dans Téléchargements ({2} fichiers, {3} Mo). L'ouvrir pour avoir le dossier « {1} ».", "Fertig in {0} s: „{1}.zip“ in den Downloads ({2} Dateien, {3} MB). Öffnen, um den Ordner „{1}“ zu erhalten.",
+             "Hecho en {0} s: «{1}.zip» en Descargas ({2} archivos, {3} MB). Ábrelo para tener la carpeta «{1}»."],
+  scrivo: ["Scrivo {0} file nella cartella «{1}»…", "Writing {0} files to the folder «{1}»…", "Écriture de {0} fichiers dans le dossier « {1} »…", "Schreibe {0} Dateien in den Ordner „{1}“…", "Escribo {0} archivos en la carpeta «{1}»…"],
+  fattoCart: ["Fatto in {0} s: cartella «{1}» in «{2}» ({3} file, {4} MB).", "Done in {0} s: folder «{1}» in «{2}» ({3} files, {4} MB).", "Terminé en {0} s : dossier « {1} » dans « {2} » ({3} fichiers, {4} Mo).",
+              "Fertig in {0} s: Ordner „{1}“ in „{2}“ ({3} Dateien, {4} MB).", "Hecho en {0} s: carpeta «{1}» en «{2}» ({3} archivos, {4} MB)."],
+  nonRiuscito: ["Non riuscito: {0}", "Failed: {0}", "Échec : {0}", "Fehlgeschlagen: {0}", "Fallido: {0}"],
+  chiave: ["Manca la chiave API Google (CHIAVE_API in index.html).", "The Google API key is missing (CHIAVE_API in index.html).", "La clé API Google manque (CHIAVE_API dans index.html).",
+           "Der Google-API-Schlüssel fehlt (CHIAVE_API in index.html).", "Falta la clave API de Google (CHIAVE_API en index.html)."],
+  // caselle "cosa preparare" (chiavi di USCITE_NOMI in estrarre_mappe.py)
+  u_cad: ["AutoCAD (DXF UTM a colori e in bianco e nero)", "AutoCAD (UTM DXF in colour and in black and white)", "AutoCAD (DXF UTM en couleurs et en noir et blanc)", "AutoCAD (UTM-DXF farbig und schwarz-weiß)", "AutoCAD (DXF UTM en color y en blanco y negro)"],
+  u_wgs84: ["DXF in gradi WGS84 (Global Mapper, GPS)", "DXF in WGS84 degrees (Global Mapper, GPS)", "DXF en degrés WGS84 (Global Mapper, GPS)", "DXF in WGS84-Grad (Global Mapper, GPS)", "DXF en grados WGS84 (Global Mapper, GPS)"],
+  u_gpkg: ["GeoPackage UTM e WGS84 (QGIS, QField)", "GeoPackage UTM and WGS84 (QGIS, QField)", "GeoPackage UTM et WGS84 (QGIS, QField)", "GeoPackage UTM und WGS84 (QGIS, QField)", "GeoPackage UTM y WGS84 (QGIS, QField)"],
+  u_qgis: ["Progetto QGIS", "QGIS project", "Projet QGIS", "QGIS-Projekt", "Proyecto QGIS"],
+  u_3d: ["Terreno e viste 3D in QGIS", "Terrain and 3D views in QGIS", "Terrain et vues 3D dans QGIS", "Gelände und 3D-Ansichten in QGIS", "Terreno y vistas 3D en QGIS"],
+  u_terreno: ["Terreno UTM per il CAD (Civil 3D)", "UTM terrain for CAD (Civil 3D)", "Terrain UTM pour la CAO (Civil 3D)", "UTM-Gelände für CAD (Civil 3D)", "Terreno UTM para CAD (Civil 3D)"],
+};
+const LOCALI = { it: "it", en: "en-GB", fr: "fr", de: "de", es: "es" };
+function linguaIniziale() {
+  try { const l = localStorage.getItem("lingua_mappe"); if (l && LINGUE.some(x => x[0] === l)) return l; } catch (e) {}
+  const n = (navigator.language || "it").slice(0, 2).toLowerCase();
+  return LINGUE.some(x => x[0] === n) ? n : "en";
+}
+let LINGUA = linguaIniziale();
+const LOC = () => LOCALI[LINGUA] || "it";
+function t(k, ...v) {
+  const r = I18N[k]; if (!r) return k;
+  let s = r[LINGUE.findIndex(x => x[0] === LINGUA)] || r[0];
+  v.forEach((x, i) => { s = s.split("{" + i + "}").join(x); });
+  return s;
+}
+function traduciPagina() {           // testi fissi: data-t (testo), data-t-ph (segnaposto), data-t-al (aria-label)
+  document.documentElement.lang = LINGUA;
+  document.querySelectorAll("[data-t]").forEach(e => { e.textContent = t(e.dataset.t); });
+  document.querySelectorAll("[data-t-ph]").forEach(e => { e.placeholder = t(e.dataset.tPh); });
+  document.querySelectorAll("[data-t-al]").forEach(e => { e.setAttribute("aria-label", t(e.dataset.tAl)); });
+  document.querySelectorAll("[data-pdf]").forEach(e => { e.href = e.dataset.pdf + "_" + LINGUA + ".pdf"; });   // PDF nella lingua scelta
+}
+function menuLingua(sel, dopo) {
+  sel.innerHTML = "";
+  LINGUE.forEach(([k, n]) => { const o = document.createElement("option"); o.value = k; o.textContent = n; sel.appendChild(o); });
+  sel.value = LINGUA;
+  sel.addEventListener("change", () => { LINGUA = sel.value; try { localStorage.setItem("lingua_mappe", LINGUA); } catch (e) {} traduciPagina(); if (dopo) dopo(); });
+}
+
 const CHIAVE_API = "AIzaSyA3eA9-4n6jc6llgXn805Pus54awLbTxn0";                                   // la stessa di Carica Mappe (limitata a claudemonbaron.github.io)
 const RADICE = "1Qss5yBi3WuEZ-LSkcJ1TjaKrd8QHeOuu";      // Cartografia_cond sul Drive
 const $ = id => document.getElementById(id);
 const leggi = (k, d) => { try { const v = localStorage.getItem("em_" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
 const salva = (k, v) => { try { localStorage.setItem("em_" + k, JSON.stringify(v)); } catch (e) {} };
 const bello = p => p.replace(/^Prov/, "").replace(/^[A-Z]{2}_/, "").replace(/([a-zà-ÿ])([A-Z])/g, "$1 $2");
-const mb = n => n < 10 * 1048576 ? (n / 1048576).toFixed(1) : Math.round(n / 1048576).toLocaleString("it");
+const mb = n => n < 10 * 1048576 ? (n / 1048576).toLocaleString(LOC(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : Math.round(n / 1048576).toLocaleString(LOC());
 // Zona condivisa con l'altra pagina (Carica Mappe <-> Estrazione Mappe): provincia, comune, tipo di scelta e km.
 // Le due pagine chiamano diversamente alcune cose: si confrontano provincia e comune "normalizzati".
 const SINONIMI = { monterelevalcellina: "monterealevalcellina", pasiano: "pasianodipordenone", buja: "buia", reanadelrojale: "reanadelroiale" };
@@ -198,7 +385,7 @@ const MOBILE = /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent) || (
 // = ritaglio 110 s + unione 378 s con 2,5 GB di memoria; estrazione completa provata dall'utente: ~20 min (app sul Mac 5-6 min).
 // Circa 10 s per MB di zip, memoria ~20 volte gli MB di zip.
 const SEC_PER_MB = 10, GRANDE_MB = 40, MOLTO_GRANDE_MB = 100, MOBILE_MAX_MB = 30;
-const minuti = s => s < 90 ? Math.max(1, Math.round(s)) + " secondi" : "circa " + Math.round(s / 60) + " minuti";
+const minuti = s => s < 90 ? t("secondi", Math.max(1, Math.round(s))) : t("minuti", Math.round(s / 60));
 
 // ---------------------------------------------------------------- il lavoratore (Python nel browser)
 const w = new Worker("lavoro.js");
@@ -212,12 +399,12 @@ w.onmessage = (e) => {
   if (m.t === "avanza") { avanza(m); return; }
   if (m.t === "pronto") { pronto(m); return; }
   const a = attese.get(m.id);
-  if (m.t === "errore" && !a) { $("avvio").hidden = false; $("avvio").textContent = "Il programma non è partito: " + m.s; return; }
+  if (m.t === "errore" && !a) { $("avvio").hidden = false; $("avvio").textContent = t("nonPartito", m.s); return; }
   if (!a) return;
   attese.delete(m.id);
   m.t === "errore" ? a.ko(new Error(m.s)) : a.ok(m.v);
 };
-w.onerror = (e) => { $("avvio").hidden = false; $("avvio").textContent = "Il programma non è partito (" + (e.message || "errore") + "). Serve un browser recente: Chrome, Edge, Safari o Firefox."; };
+w.onerror = (e) => { $("avvio").hidden = false; $("avvio").textContent = t("nonPartitoBrowser", e.message || "errore"); };
 
 // ---------------------------------------------------------------- stato della scelta
 const st = { reg: "", prov: "", com: "", modo: "solo", lista: [], off: new Set(), stima: null, lavoro: false, cartella: null };
@@ -230,14 +417,12 @@ const nomeReg = r => (INFO.regioni.find(x => x[0] === r) || [r, r])[1];
 function pronto(info) {
   INFO = info; COMUNI = info.comuni;
   $("avvio").hidden = true;
-  const quando = info.dati ? new Date(info.dati).toLocaleDateString("it") : "";
-  $("info-dati").textContent = "Elenchi" + (quando ? " del " + quando : "") + ": " + COMUNI.length.toLocaleString("it") + " comuni.";
-  $("versione").textContent = "versione " + VERSIONE + " · programma Estrarre_Mappe " + info.versione;
+  testiInfo();
   const u = $("uscite"); u.innerHTML = "";
   const scelte = leggi("uscite", info.uscite.map(x => x[0]).filter(k => !(info.spente || []).includes(k)));   // 29 ott: terreno spento di partenza
-  info.uscite.forEach(([k, t]) => { const l = document.createElement("label"); const c = document.createElement("input");
+  info.uscite.forEach(([k, tt]) => { const l = document.createElement("label"); const c = document.createElement("input");
     c.type = "checkbox"; c.id = "u-" + k; c.value = k; c.checked = scelte.includes(k); c.addEventListener("change", () => { salva("uscite", usciteScelte()); controlla(); });
-    const s = document.createElement("span"); s.textContent = t; l.append(c, s); u.appendChild(l); });
+    const s = document.createElement("span"); s.dataset.t = "u_" + k; s.textContent = I18N["u_" + k] ? t("u_" + k) : tt; l.append(c, s); u.appendChild(l); });
   let s = leggi("stato", null);
   const z = zonaLeggi();
   if (z && (!s || (z.t || 0) > (s.t || 0))) {                       // ultima scelta fatta nell'altra pagina
@@ -252,6 +437,21 @@ function pronto(info) {
   if (s && s.com && comuni(st.reg, st.prov).includes(s.com)) { $("cerca").value = s.com; st.com = s.com; st.modo = s.modo || "solo"; (s.km || []).forEach((v, j) => $("km-" + "nseo"[j]).value = v); }
   ["sel-reg", "sel-prov", "cerca"].forEach(id => $(id).disabled = false);
   if (st.com) aggiorna(); else disegna();
+}
+function testiInfo() {           // 2 nov: righe che dipendono dagli elenchi e dalla lingua
+  if (!INFO) return;
+  const quando = INFO.dati ? new Date(INFO.dati).toLocaleDateString(LOC()) : "";
+  $("info-dati").textContent = t("elenchi", quando ? t("del", quando) : "", COMUNI.length.toLocaleString(LOC()));
+  $("versione").textContent = t("versione", VERSIONE) + t("programma", INFO.versione);
+}
+function cambiaLingua() {        // 2 nov: tutto quello che la pagina ha scritto da sola
+  testiInfo(); if (!INFO) $("versione").textContent = t("versione", VERSIONE);
+  if (VISITE) $("visite").textContent = t("visite", VISITE[0], VISITE[1]);
+  if (st.cartella) $("cartella-nome").textContent = t("cartella", st.cartella.name);
+  if (!$("avvio").hidden && !INFO) $("avvio").textContent = MOBILE ? t("avvioMob") : t("avvio");
+  if (INFO) disegna(); else controlla();
+  infoCache();
+  w.postMessage({ t: "lingua", lingua: LINGUA });
 }
 function riempiProv() {
   const ps = province(st.reg);
@@ -283,10 +483,10 @@ function disegna() {
   document.querySelectorAll(".seg button").forEach(b => { b.setAttribute("aria-pressed", String(b.dataset.m === st.modo)); b.disabled = !st.com && b.dataset.m !== "solo"; });
   $("km").hidden = st.modo !== "ret" || !st.com;
   const ul = $("lista"); ul.innerHTML = "";
-  if (!st.com) { const li = document.createElement("li"); li.className = "vuota"; li.textContent = "Scegli un comune."; ul.appendChild(li); }
+  if (!st.com) { const li = document.createElement("li"); li.className = "vuota"; li.textContent = t("scegliCom"); ul.appendChild(li); }
   else {
     const voci = [[st.reg, st.prov, st.com]].concat(st.modo === "solo" ? [] : st.lista);
-    if (st.modo !== "solo" && !st.lista.length) { const li = document.createElement("li"); li.className = "vuota"; li.textContent = st.modo === "conf" ? "Nessun confinante con dati." : "Nessun comune nel rettangolo: aumenta i km e premi Trova comuni."; ul.appendChild(li); }
+    if (st.modo !== "solo" && !st.lista.length) { const li = document.createElement("li"); li.className = "vuota"; li.textContent = st.modo === "conf" ? t("nessunConf") : t("nessunRet"); ul.appendChild(li); }
     voci.forEach((k, j) => {
       const li = document.createElement("li"), cb = document.createElement("input"), key = k.join(":");
       cb.type = "checkbox"; cb.id = "c-" + j; cb.checked = j === 0 || !st.off.has(key); cb.disabled = j === 0;
@@ -298,7 +498,7 @@ function disegna() {
     });
   }
   const tot = st.modo === "solo" ? 0 : st.lista.length, sel = aggiunti().length;
-  $("t-sel").textContent = st.com && st.modo !== "solo" ? "Selezionati " + sel + " comuni su " + tot + " (oltre a " + st.com + ")." + (sel > 40 ? " Tanti comuni: l'estrazione sarà lunga e pesante." : "") : "";
+  $("t-sel").textContent = st.com && st.modo !== "solo" ? t("selez", sel, tot, st.com) + (sel > 40 ? t("tanti") : "") : "";
   salva("stato", { reg: st.reg, prov: st.prov, com: st.com, modo: st.modo, km: km(), t: Date.now() });
   if (st.prov) zonaScrivi({ prov: st.prov, com: st.com, modo: st.com ? { solo: "solo", conf: "vicini", ret: "ret" }[st.modo] : "prov", km: km() });
   controlla();
@@ -316,14 +516,13 @@ function controlla() {
   const nome = nomeEstrazione();
   $("riga-cartella").hidden = !PUO_SCRIVERE;
   $("dove").textContent = !nome ? "" : PUO_SCRIVERE
-    ? (st.cartella ? "Il risultato va nella cartella «" + nome + "» dentro «" + st.cartella.name + "»." : "Scegli la cartella dove creare «" + nome + "» (per esempio Download).")
-    : "Il risultato arriva come «" + nome + ".zip» nei Download: dentro c'è la cartella «" + nome + "».";
+    ? (st.cartella ? t("doveCart", nome, st.cartella.name) : t("doveScegli", nome))
+    : t("doveZip", nome);
   const z = s ? s.byte / 1048576 : 0, av = $("avviso-peso");
   av.hidden = !s || z < GRANDE_MB;
-  if (s && z >= GRANDE_MB) av.textContent = "Estrazione grande: nel browser ci vorranno " + minuti(z * SEC_PER_MB) + " e molta memoria" +
-    (z >= MOLTO_GRANDE_MB ? ". Con l'app Estrarre_Mappe sul computer è molto più veloce e sicura." : ". Tieni la pagina aperta fino alla fine.");
+  if (s && z >= GRANDE_MB) av.textContent = t("grande", minuti(z * SEC_PER_MB)) + (z >= MOLTO_GRANDE_MB ? t("grandeApp") : t("grandeAperta"));
   $("b-estrai").disabled = !INFO || !st.com || !s || st.lavoro || !usciteScelte().length || (PUO_SCRIVERE && !st.cartella);
-  $("b-estrai").textContent = PUO_SCRIVERE && !st.cartella ? "Prima scegli dove salvare" : "Estrai " + (nome || "");
+  $("b-estrai").textContent = PUO_SCRIVERE && !st.cartella ? t("primaScegli") : t("estrai") + " " + (nome || "");
 }
 
 // ---------------------------------------------------------------- cartella di destinazione (Chrome / Edge)
@@ -332,7 +531,7 @@ async function dbSet(k, v) { try { const d = await db(); await new Promise((ok, 
 async function dbGet(k) { try { const d = await db(); return await new Promise(ok => { const r = d.transaction("h").objectStore("h").get(k); r.onsuccess = () => ok(r.result); r.onerror = () => ok(null); }); } catch (e) { return null; } }
 async function scegliCartella() {
   try { st.cartella = await window.showDirectoryPicker({ id: "estrazione", mode: "readwrite", startIn: "downloads" }); } catch (e) { return; }
-  await dbSet("cartella", st.cartella); $("cartella-nome").textContent = "Cartella: " + st.cartella.name; controlla();
+  await dbSet("cartella", st.cartella); $("cartella-nome").textContent = t("cartella", st.cartella.name); controlla();
 }
 async function permesso(h) { const o = { mode: "readwrite" }; if ((await h.queryPermission(o)) === "granted") return true; return (await h.requestPermission(o)) === "granted"; }
 
@@ -340,39 +539,38 @@ async function permesso(h) { const o = { mode: "readwrite" }; if ((await h.query
 function log(s) { const l = $("log"); l.textContent += s + "\n"; l.scrollTop = l.scrollHeight; }
 function avanza(m) {
   const b = $("barra"), box = $("barra-box");
-  if (m.parte === "scarico") { box.classList.remove("lavora"); b.style.width = (m.tot ? Math.min(100, m.fatto / m.tot * 100) : 0).toFixed(1) + "%"; $("esito").textContent = "Scarico i DXF dal Drive: " + mb(m.fatto) + " di " + mb(m.tot) + " MB…"; }
-  else { box.classList.add("lavora"); b.style.width = ""; $("esito").textContent = "Elaboro: ritaglio, unione, reticolo e versioni (può volerci qualche minuto)…"; }
+  if (m.parte === "scarico") { box.classList.remove("lavora"); b.style.width = (m.tot ? Math.min(100, m.fatto / m.tot * 100) : 0).toFixed(1) + "%"; $("esito").textContent = t("scarico", mb(m.fatto), mb(m.tot)); }
+  else { box.classList.add("lavora"); b.style.width = ""; $("esito").textContent = t("elaboro"); }
 }
 function serveConferma() {
-  const z = st.stima.byte / 1048576, t = [];
-  if (MOBILE) t.push("Stai usando un telefono o un tablet. Il risultato (DXF per AutoCAD, progetto QGIS) si apre al computer; sul telefono serve solo il GeoPackage, in QField." +
-    (z > MOBILE_MAX_MB ? " Questa estrazione è grande per un telefono (" + mb(st.stima.byte) + " MB da scaricare): potrebbe bloccarsi per mancanza di memoria." : ""));
-  if (z >= MOLTO_GRANDE_MB) t.push("Estrazione molto grande: " + mb(st.stima.byte) + " MB da scaricare, " + minuti(z * SEC_PER_MB) + " di calcolo e diversi GB di memoria. Con l'app Estrarre_Mappe sul computer è molto più veloce.");
-  return t;
+  const z = st.stima.byte / 1048576, tx = [];
+  if (MOBILE) tx.push(t("mobile") + (z > MOBILE_MAX_MB ? t("mobileGrande", mb(st.stima.byte)) : ""));
+  if (z >= MOLTO_GRANDE_MB) tx.push(t("moltoGrande", mb(st.stima.byte), minuti(z * SEC_PER_MB)));
+  return tx;
 }
-function chiediConferma(t) {
-  $("conf-mobile-testo").textContent = t.join(" ") + " Vuoi estrarre lo stesso?";
+function chiediConferma(tx) {
+  $("conf-mobile-testo").textContent = tx.join(" ") + t("vuoiLoStesso");
   $("conf-mobile").hidden = false; $("b-estrai").hidden = true;
 }
 async function estrai(confermato) {
   if (st.lavoro || !st.stima) return;
-  if (!confermato) { const t = serveConferma(); if (t.length) return chiediConferma(t); }
+  if (!confermato) { const tx = serveConferma(); if (tx.length) return chiediConferma(tx); }
   $("conf-mobile").hidden = true; $("b-estrai").hidden = false;
-  if (PUO_SCRIVERE && !(await permesso(st.cartella))) { $("dove").textContent = "Senza il permesso di scrivere nella cartella non posso salvare: sceglila di nuovo."; return; }
+  if (PUO_SCRIVERE && !(await permesso(st.cartella))) { $("dove").textContent = t("permesso"); return; }
   st.lavoro = true; controlla();
-  $("sez-av").hidden = false; $("log").textContent = ""; $("esito").className = "esito"; $("esito").textContent = "Comincio…";
+  $("sez-av").hidden = false; $("log").textContent = ""; $("esito").className = "esito"; $("esito").textContent = t("comincio");
   const t0 = performance.now(), agg = aggiunti(), modo = { solo: "Comune", conf: "Confinanti", ret: "Rettangolo" }[st.modo];
   try {
     const r = await chiedi("estrai", { reg: st.reg, prov: st.prov, com: st.com, aggiunti: agg, uscite: usciteScelte(),
-                                       rett: st.modo === "ret" ? km() : null, comeZip: !PUO_SCRIVERE });
+                                       rett: st.modo === "ret" ? km() : null, comeZip: !PUO_SCRIVERE, lingua: LINGUA });
     $("barra-box").classList.remove("lavora"); $("barra").style.width = "100%";
     if (r.zip) {
       const url = URL.createObjectURL(new Blob([r.zip], { type: "application/zip" }));
       const a = document.createElement("a"); a.href = url; a.download = r.nome + ".zip"; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 300000);
-      $("esito").textContent = "Fatto in " + r.secondi + " s: «" + r.nome + ".zip» nei Download (" + r.n + " file, " + mb(r.byte) + " MB). Aprilo per avere la cartella «" + r.nome + "».";
+      $("esito").textContent = t("fattoZip", r.secondi, r.nome, r.n, mb(r.byte));
     } else {
-      $("esito").textContent = "Scrivo " + r.n + " file nella cartella «" + r.nome + "»…";
+      $("esito").textContent = t("scrivo", r.n, r.nome);
       const base = await st.cartella.getDirectoryHandle(r.nome, { create: true });
       for (const f of r.files) {
         const parti = f.rel.split("/"); let d = base;
@@ -380,33 +578,47 @@ async function estrai(confermato) {
         const w_ = await (await d.getFileHandle(parti[parti.length - 1], { create: true })).createWritable();
         await w_.write(f.dati); await w_.close();
       }
-      $("esito").textContent = "Fatto in " + Math.round((performance.now() - t0) / 1000) + " s: cartella «" + r.nome + "» in «" + st.cartella.name + "» (" + r.n + " file, " + mb(r.byte) + " MB).";
+      $("esito").textContent = t("fattoCart", Math.round((performance.now() - t0) / 1000), r.nome, st.cartella.name, r.n, mb(r.byte));
     }
     $("esito").className = "esito ok";
     conta("Estrazione · " + modo + " · " + st.com, (1 + agg.length) + " comuni, " + st.stima.tavole + " DXF, " + mb(r.byte) + " MB, " + usciteScelte().join("+"));
   } catch (e) {
-    $("esito").className = "esito no"; $("esito").textContent = "Non riuscito: " + e.message; log("ERRORE: " + e.message);
+    $("esito").className = "esito no"; $("esito").textContent = t("nonRiuscito", e.message); log("ERRORE: " + e.message);
     conta("Errore estrazione · " + st.com, String(e.message).slice(0, 200));
   } finally { st.lavoro = false; $("barra-box").classList.remove("lavora"); controlla(); }
 }
 
+async function infoCache() {      // quanto occupa la cache dei file scaricati (stima del browser)
+  try {
+    const c = await caches.open("estrazione-mappe"), k = await c.keys();
+    let tc = k.length ? t("cacheFile", k.length) : t("cacheVuota");
+    if (k.length && navigator.storage && navigator.storage.estimate) {
+      const e = await navigator.storage.estimate();
+      if (e.usage) tc += t("cacheCirca", mb(e.usage));
+    }
+    $("cache-info").textContent = t("cacheInfo", tc);
+  } catch (e) { $("cache-info").textContent = ""; }
+}
+
 // ---------------------------------------------------------------- statistiche anonime
 function conta(percorso, titolo) { try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: percorso, title: titolo, event: true }); } catch (e) {} }
+let VISITE = null;
 async function visite() {      // le visite di tutte e due le pagine (GoatCounter: "Allow adding visitor counts")
   const conta1 = async (p) => { try { const r = await fetch("https://claudemonbaron.goatcounter.com/counter/" + encodeURIComponent(p) + ".json");
     const d = await r.json(); return d && d.count !== undefined ? d.count : null; } catch (e) { return null; } };
   const [c, e] = await Promise.all([conta1("/Carica_Mappe/"), conta1("/Carica_Mappe/estrazione/")]);
   if (c === null && e === null) return;
-  $("visite").textContent = " · visite: Carica Mappe " + (c || "0") + " · Estrazione " + (e || "0");
+  VISITE = [c || "0", e || "0"]; $("visite").textContent = t("visite", VISITE[0], VISITE[1]);
   $("visite").hidden = false;
 }
 
 // ---------------------------------------------------------------- avvio
 (async function () {
-  $("versione").textContent = "versione " + VERSIONE; visite();
-  if (!CHIAVE_API) { $("avvio").textContent = "Manca la chiave API Google (CHIAVE_API in index.html)."; return; }
-  if (MOBILE) $("avvio").textContent = "Preparo il programma… (su telefono e tablet ci vuole un po' di più)";
-  w.postMessage({ t: "avvio", chiave: CHIAVE_API, radice: RADICE });
+  traduciPagina(); menuLingua($("sel-lingua"), cambiaLingua);
+  $("versione").textContent = t("versione", VERSIONE); visite();
+  if (!CHIAVE_API) { $("avvio").textContent = t("chiave"); return; }
+  if (MOBILE) $("avvio").textContent = t("avvioMob");
+  w.postMessage({ t: "avvio", chiave: CHIAVE_API, radice: RADICE, lingua: LINGUA });
   $("sel-reg").addEventListener("change", e => { st.reg = e.target.value; st.prov = ""; st.com = ""; $("cerca").value = ""; st.modo = "solo"; riempiProv(); aggiorna(); });
   $("sel-prov").addEventListener("change", e => { st.prov = e.target.value; st.com = ""; $("cerca").value = ""; st.modo = "solo"; riempiProv(); aggiorna(); });
   $("cerca").addEventListener("input", e => { const t = e.target.value.normalize("NFC").trim().toLowerCase();
@@ -416,12 +628,23 @@ async function visite() {      // le visite di tutte e due le pagine (GoatCounte
   $("b-trova").addEventListener("click", aggiorna);
   ["n", "s", "e", "o"].forEach(k => $("km-" + k).addEventListener("change", aggiorna));
   $("b-estrai").addEventListener("click", () => estrai(false));
+  // 1 nov: svuota la cache del browser (DXF e tessere gia' scaricati), con conferma
+  infoCache();
+  $("b-svuota").addEventListener("click", () => { if (st.lavoro) return; $("conf-svuota").hidden = false; $("b-svuota").hidden = true; });
+  $("b-svuota-no").addEventListener("click", () => { $("conf-svuota").hidden = true; $("b-svuota").hidden = false; });
+  $("b-svuota-si").addEventListener("click", async () => {
+    $("conf-svuota").hidden = true; $("b-svuota").hidden = false;
+    try { await caches.delete("estrazione-mappe"); } catch (e) {}
+    try { await chiedi("svuota"); } catch (e) {}
+    $("cache-info").textContent = t("cacheSvuotata");
+    setTimeout(infoCache, 1500);
+  });
   $("b-mob-si").addEventListener("click", () => estrai(true));
   $("b-mob-no").addEventListener("click", () => { $("conf-mobile").hidden = true; $("b-estrai").hidden = false; });
   if (PUO_SCRIVERE) {
     $("b-cartella").addEventListener("click", scegliCartella);
     const h = await dbGet("cartella");
-    if (h) { st.cartella = h; $("cartella-nome").textContent = "Cartella: " + h.name + " (cliccare Estrai chiederà il permesso, se serve)"; }
+    if (h) { st.cartella = h; $("cartella-nome").textContent = t("cartellaPerm", h.name); }
   }
   controlla();
 })();

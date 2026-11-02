@@ -97,14 +97,29 @@ function fileIn(p, base) {                  // [{rel, dati}] di tutta la cartell
 }
 const pyJson = (codice) => JSON.parse(py.runPython(codice));
 
+// ---------------------------------------------------------------- lingua (2 nov 2026): messaggi del lavoratore
+let LINGUA = "it";
+const TW = {
+  python: ["Carico Python nel browser (la prima volta circa 30 MB)…", "Loading Python in the browser (about 30 MB the first time)…", "Chargement de Python dans le navigateur (environ 30 Mo la première fois)…",
+           "Lade Python in den Browser (beim ersten Mal etwa 30 MB)…", "Cargo Python en el navegador (la primera vez unos 30 MB)…"],
+  ezdxf: ["Carico ezdxf…", "Loading ezdxf…", "Chargement d'ezdxf…", "Lade ezdxf…", "Cargo ezdxf…"],
+  leggo: ["Leggo il programma e gli elenchi dal Drive…", "Reading the program and the lists from Drive…", "Lecture du programme et des listes depuis le Drive…",
+          "Lese Programm und Listen vom Drive…", "Leo el programa y las listas del Drive…"],
+  scarico: ["Scarico {0} file DXF{1} dal Drive ({2} MB in tutto)…", "Downloading {0} DXF files{1} from Drive ({2} MB in all)…", "Téléchargement de {0} fichiers DXF{1} depuis le Drive ({2} Mo en tout)…",
+            "Lade {0} DXF-Dateien{1} vom Drive ({2} MB insgesamt)…", "Descargo {0} archivos DXF{1} del Drive ({2} MB en total)…"],
+  tessere: [" e {0} tessere del terreno ({1} MB)", " and {0} terrain tiles ({1} MB)", " et {0} tuiles de terrain ({1} Mo)", " und {0} Geländekacheln ({1} MB)", " y {0} teselas de terreno ({1} MB)"],
+};
+function tw(k, ...v) { let x = TW[k][["it", "en", "fr", "de", "es"].indexOf(LINGUA)] || TW[k][0]; v.forEach((y, i) => { x = x.split("{" + i + "}").join(y); }); return x; }
+function linguaPython() { try { if (py) py.runPython("import estrarre_mappe as _E\n_E.LINGUA = " + JSON.stringify(LINGUA)); } catch (e) {} }
+
 // ---------------------------------------------------------------- comandi
 async function avvio(m) {
-  CHIAVE = m.chiave; RADICE = m.radice;
-  manda("stato", { s: "Carico Python nel browser (la prima volta circa 30 MB)…" });
+  CHIAVE = m.chiave; RADICE = m.radice; LINGUA = m.lingua || "it";
+  manda("stato", { s: tw("python") });
   py = await loadPyodide({ indexURL: PYODIDE });
   py.setStdout({ batched: log }); py.setStderr({ batched: log });
   await py.loadPackage(["numpy", "pyproj", "sqlite3", "micropip"]);
-  manda("stato", { s: "Carico ezdxf…" });
+  manda("stato", { s: tw("ezdxf") });
   await py.runPythonAsync("import micropip\nawait micropip.install('" + EZDXF + "')");
   // ezdxf misura le scritte con un carattere TrueType: nel browser non ce ne sono ("no default font found").
   // Gli si da' DejaVu Sans, che e' proprio il suo carattere di riserva.
@@ -115,7 +130,7 @@ async function avvio(m) {
       py.runPython("from ezdxf.fonts import fonts as _f\n_f.font_manager.clear()\n_f.font_manager.build(['/usr/share/fonts'])");
     }
   } catch (e) { log("(carattere DejaVu non caricato: le scritte si misurano in modo approssimato)"); }
-  manda("stato", { s: "Leggo il programma e gli elenchi dal Drive…" });
+  manda("stato", { s: tw("leggo") });
   const prog = await elenco((await trova(["Estrazione_mappe", "Programma"])).id);
   for (const n of ["estrarre_mappe.py", "gis_lavoro.py", "terreno.py"]) {
     const f = prog.get(n);
@@ -141,6 +156,7 @@ json.dumps({"versione": E.VERSIONE,
             "uscite": E.USCITE_NOMI, "spente": list(getattr(E, "USCITE_SPENTE", ()))})
 `);
   info.dati = quando;
+  linguaPython();
   manda("pronto", info);
 }
 
@@ -173,9 +189,9 @@ json.dumps({"rel": _rel, "elementi": len(_el), "fuso": 33 if _misto else _s0})`)
 async function tessereTerreno(m) {          // 29 ott: tessere DTM della zona, come terreno.prepara() nell'app
   const u = m.uscite || [], serie = [];
   if (u.includes("3d")) serie.push("WGS84");
-  if (u.includes("terreno")) serie.push("UTM32");
+  if (u.includes("terreno")) serie.push("UTM");     // 30 ott: UTM32 o UTM33, come i DXF (deciso in Python)
   if (!serie.length) return [];
-  for (const s of serie) {
+  for (const s of serie.flatMap(s => s === "UTM" ? ["UTM32", "UTM33"] : [s])) {
     const p = "/dati/DTM_TESSERE/indice_" + s + ".csv";
     if (!esiste(p)) {
       try { scrivi(p, await contenuto(await trova(["Estrazione_mappe", "DTM_TESSERE", "indice_" + s + ".csv"]))); }
@@ -186,6 +202,10 @@ async function tessereTerreno(m) {          // 29 ott: tessere DTM della zona, c
   return pyJson(`
 import terreno as T
 _reg, _prov, _com, _agg, _rt, _ser = _t[0], _t[1], _t[2], [tuple(x) for x in _t[3]], _t[4], list(_t[5])
+_el = arch.lista_elementi(_reg, _prov, _com, _agg)
+_s0 = arch.sistema(_reg)
+_fu = 33 if any(":" in e and arch.sistema(e.split(":")[0]) != _s0 for e in _el) else _s0
+_ser = [("UTM%d" % _fu if s == "UTM" else s) for s in _ser]
 _box = None
 if _rt:
     _r, _ = E.rettangolo_comune(arch, _reg, _prov, _com, tuple(_rt))
@@ -226,8 +246,8 @@ async function estrai(m) {
   let tt = [];
   try { tt = await tessereTerreno(m); } catch (e) { log("Terreno: " + e.message); }
   for (const r of tt) { try { const f = await trova(["Estrazione_mappe"].concat(r.split("/"))); ff.push([r, f]); tot += +f.size || 0; tTer += +f.size || 0; } catch (e) { log("  " + r.split("/").pop() + ": non c'e' sul Drive"); } }
-  log("Scarico " + nDxf + " file DXF" + (ff.length > nDxf ? " e " + (ff.length - nDxf) + " tessere del terreno (" + Math.round(tTer / 1048576) + " MB)" : "") +
-      " dal Drive (" + Math.round(tot / 1048576) + " MB in tutto)…");
+  if (m.lingua) { LINGUA = m.lingua; linguaPython(); }
+  log(tw("scarico", nDxf, ff.length > nDxf ? tw("tessere", ff.length - nDxf, Math.round(tTer / 1048576)) : "", Math.round(tot / 1048576)));
   for (const [r, f] of ff) {
     const p = "/dati/" + r;
     if (!esiste(p)) {
@@ -283,6 +303,7 @@ onmessage = async (e) => {
   try {
     let v;
     if (m.t === "avvio") return await avvio(m);
+    if (m.t === "lingua") { LINGUA = m.lingua || "it"; linguaPython(); return; }
     if (m.t === "vicini") v = vicini(m);
     else if (m.t === "rettangolo") v = rettangolo(m);
     else if (m.t === "prepara") v = await prepara(m);
