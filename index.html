@@ -172,6 +172,16 @@ a.btn { text-decoration: none }   /* 2 nov: link ai PDF con l'aspetto dei pulsan
           <button type="button" class="btn pic" id="b-conf-si" data-t="siCancella">Sì, cancella</button>
           <button type="button" class="btn sec pic" id="b-conf-no" data-t="annulla">Annulla</button>
         </div>
+        <div class="stack" id="gpx-box">
+          <b data-t="gpxTit">Tracce GPX</b>
+          <div class="riga">
+            <button type="button" class="btn sec pic" id="b-gpx" data-t="selGpx">Seleziona GPX…</button>
+            <button type="button" class="btn sec pic" id="b-gpx-svuota" data-t="svuotaGpx">Svuota lista</button>
+            <input type="file" id="f-gpx" accept=".gpx,application/gpx+xml" multiple hidden>
+          </div>
+          <ul class="lista" id="gpx-lista"></ul>
+          <label class="piccolo"><input type="checkbox" id="c-gpx"> <span data-t="gpxAncheGps">Carica anche sul GPS insieme alla mappa (cartella Garmin/GPX, sostituisce i file con lo stesso nome)</span></label>
+        </div>
       </div>
       <p class="piccolo" id="gps-no" hidden data-t="gpsNo">Questo browser non può scrivere direttamente nel GPS (serve Chrome o Edge sul computer). L'app scarica e unisce le mappe e ti dà <b>un solo file</b>: poi lo copi nella cartella <b>Garmin</b> del GPS (sull'iPhone con l'app File, sul computer col Finder o Esplora risorse).</p>
       <div class="dest">
@@ -215,12 +225,25 @@ a.btn { text-decoration: none }   /* 2 nov: link ai PDF con l'aspetto dei pulsan
 <script>
 "use strict";
 // ---------------------------------------------------------------- impostazioni
-const VERSIONE = "1.9 (2 nov 2026)";
+const VERSIONE = "2.0 (9 nov 2026)";   // 2.0: lista GPX ("Seleziona GPX…") da copiare in Garmin/GPX insieme alla mappa (Chrome/Edge)
 // ---------------------------------------------------------------- lingua (2 nov 2026)
 // La lingua scelta vale per tutte e due le pagine (localStorage "lingua_mappe"). Testi: {0} {1} ... = valori.
 const LINGUE = [["it", "Italiano"], ["en", "English"], ["fr", "Français"], ["de", "Deutsch"], ["es", "Español"]];
 const I18N = {
   lingua: ["Lingua", "Language", "Langue", "Sprache", "Idioma"],
+  gpxTit: ["Tracce GPX", "GPX tracks", "Traces GPX", "GPX-Tracks", "Tracks GPX"],
+  selGpx: ["Seleziona GPX…", "Select GPX…", "Sélectionner GPX…", "GPX auswählen…", "Seleccionar GPX…"],
+  svuotaGpx: ["Svuota lista", "Clear list", "Vider la liste", "Liste leeren", "Vaciar lista"],
+  gpxVuota: ["Nessun GPX: con «Seleziona GPX…» si aggiungono, anche da più cartelle.", "No GPX: add them with «Select GPX…», also from several folders.",
+             "Aucun GPX : les ajouter avec « Sélectionner GPX… », aussi depuis plusieurs dossiers.", "Keine GPX: mit „GPX auswählen…“ hinzufügen, auch aus mehreren Ordnern.",
+             "Ningún GPX: se añaden con «Seleccionar GPX…», también desde varias carpetas."],
+  gpxAncheGps: ["Carica anche sul GPS insieme alla mappa (cartella Garmin/GPX, sostituisce i file con lo stesso nome)",
+                "Also load to the GPS with the map (Garmin/GPX folder, replaces files with the same name)",
+                "Charger aussi sur le GPS avec la carte (dossier Garmin/GPX, remplace les fichiers du même nom)",
+                "Mit der Karte auch auf das GPS laden (Ordner Garmin/GPX, ersetzt gleichnamige Dateien)",
+                "Cargar también en el GPS con el mapa (carpeta Garmin/GPX, sustituye los archivos con el mismo nombre)"],
+  togli: ["Togli", "Remove", "Retirer", "Entfernen", "Quitar"],
+  gpxScritti: ["GPX nel GPS: {0} in {1}", "GPX to the GPS: {0} in {1}", "GPX sur le GPS : {0} dans {1}", "GPX auf dem GPS: {0} in {1}", "GPX en el GPS: {0} en {1}"],
   sub: ["Mappe CTRN 1:5000 per GPS Garmin, dal Drive della protezione civile.", "CTRN 1:5000 maps for Garmin GPS, from the civil protection Drive.",
         "Cartes CTRN 1:5000 pour GPS Garmin, depuis le Drive de la protection civile.", "CTRN-Karten 1:5000 für Garmin-GPS, vom Drive des Zivilschutzes.",
         "Mapas CTRN 1:5000 para GPS Garmin, desde el Drive de protección civil."],
@@ -714,6 +737,14 @@ async function carica(soloFile) {
       for (const p of parti) await w.write(p);
       await w.close();
       log(t("scrittoGps", gps.cart.name + "/" + nome));
+      if ($("c-gpx").checked && gpxLista.length) {          // 2.0: GPX della lista in Garmin/GPX, sovrascritti
+        const dg = await gps.cart.getDirectoryHandle("GPX", { create: true });
+        for (const f of gpxLista) {
+          const w2 = await (await dg.getFileHandle(f.name, { create: true })).createWritable();
+          await w2.write(f); await w2.close();
+        }
+        log(t("gpxScritti", gpxLista.length, gps.cart.name + "/GPX"));
+      }
       $("esito").textContent = t("fattoGps", Math.round((performance.now() - t0) / 1000), nome, mb(byte), tess);
       await leggiGps();
     } else {
@@ -729,6 +760,32 @@ async function carica(soloFile) {
     $("esito").textContent = t("nonRiuscito", e.message); $("esito").className = "esito no"; log("ERRORE: " + e.message);
     conta("Errore · " + nomeZona(), String(e.message).slice(0, 200));
   } finally { lavoro = false; disegna(); memoria(); }
+}
+// ---------------------------------------------------------------- lista GPX (2.0): resta finche' la pagina e' aperta
+let gpxLista = [];
+function disegnaGpx() {
+  const ul = $("gpx-lista"); ul.innerHTML = "";
+  if (!gpxLista.length) { const li = document.createElement("li"); li.className = "vuota"; li.textContent = t("gpxVuota"); ul.appendChild(li); }
+  gpxLista.forEach((f, i) => {
+    const li = document.createElement("li");
+    const a = document.createElement("span"); a.textContent = "•";
+    const n = document.createElement("span"); n.className = "n"; n.textContent = f.name;
+    const b = document.createElement("button"); b.type = "button"; b.className = "btn sec pic"; b.textContent = t("togli");
+    b.addEventListener("click", () => { gpxLista.splice(i, 1); disegnaGpx(); });
+    li.append(a, n, b); ul.appendChild(li);
+  });
+}
+function initGpx() {
+  $("b-gpx").addEventListener("click", () => $("f-gpx").click());
+  $("f-gpx").addEventListener("change", () => {
+    for (const f of $("f-gpx").files) {
+      const k = gpxLista.findIndex(x => x.name === f.name);      // stesso nome: vale l'ultimo scelto (nel GPS sarebbe lo stesso file)
+      if (k >= 0) gpxLista[k] = f; else gpxLista.push(f);
+    }
+    $("f-gpx").value = ""; disegnaGpx();
+  });
+  $("b-gpx-svuota").addEventListener("click", () => { gpxLista = []; disegnaGpx(); });
+  disegnaGpx();
 }
 // ---------------------------------------------------------------- memoria del browser (mappe tenute per non riscaricarle)
 async function memoria() {
@@ -782,6 +839,7 @@ function testiGps() {            // 2 nov: stato del GPS, dipende dalla lingua
   if (gps.pronto) $("gps-tot").textContent = t("gpsTot", gps.file.length, gps.tessere, LIMITE_TESSERE);
 }
 function cambiaLingua() {        // 2 nov: tutto quello che la pagina ha scritto da sola
+  if (PUO_SCRIVERE) disegnaGpx();                                      // 2.0
   $("versione").textContent = t("versione", VERSIONE);
   if (VISITE) $("visite").textContent = t("visite", VISITE[0], VISITE[1]);
   testiInfo(); testiGps(); memoria();
@@ -793,6 +851,7 @@ async function avvio() {
   $("versione").textContent = t("versione", VERSIONE);
   visite();
   $("gps-si").hidden = !PUO_SCRIVERE; $("gps-no").hidden = PUO_SCRIVERE;
+  if (PUO_SCRIVERE) initGpx();                                         // 2.0
   if (!CHIAVE_API) { $("errore-dati").hidden = false; $("errore-dati").textContent = t("chiave"); $("info-dati").textContent = ""; return; }
   try {
     const f = await trova(INDICE);
