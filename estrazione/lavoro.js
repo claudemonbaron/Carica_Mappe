@@ -4,6 +4,8 @@
  * Estrarre_Mappe (Estrazione_mappe/Programma/estrarre_mappe.py e gis_lavoro.py) e gli elenchi _dati, e fa
  * l'estrazione con LO STESSO codice dell'app per Mac/Windows. I file prodotti tornano alla pagina.
  * 29 ott: anche terreno.py; con le caselle "3d" / "terreno" scarica le tessere DTM della zona (DTM_TESSERE).
+ * 9 nov: cime.csv e mare.json (nomi delle cime e area Mare del 3D, Estrarre_Mappe 2.2-2.4) non si scaricano piu'
+ * all'avvio: solo se si sceglie il 3D, e con la cache del browser (la volta dopo non si riscaricano).
  * Messaggi dalla pagina: avvio, vicini, rettangolo, prepara, estrai.  Alla pagina: pronto, log, avanza, risposta, errore.
  */
 "use strict";
@@ -14,6 +16,8 @@ const API = "https://www.googleapis.com/drive/v3/files";
 importScripts(PYODIDE + "pyodide.js");
 
 let py = null, CHIAVE = "", RADICE = "";
+const SOLO_3D = new Set(["cime.csv", "mare.json"]);     // 9 nov: file di _dati che servono solo al 3D
+const dati3d = new Map();                                // nome -> file del Drive, scaricati in estrai() se serve
 const elenchi = new Map();
 const manda = (t, d) => postMessage(Object.assign({ t }, d || {}));
 const log = (s) => manda("log", { s: String(s) });
@@ -141,6 +145,7 @@ async function avvio(m) {
   let quando = "";
   for (const f of dati.values()) {
     if (/^indice_|prima_|\.bak$/.test(f.name) || f.mimeType === "application/vnd.google-apps.folder") continue;
+    if (SOLO_3D.has(f.name)) { dati3d.set(f.name, f); continue; }
     scrivi("/dati/_dati/" + f.name, await contenuto(f));
     if (f.name === "regioni.csv" || /elementi\.csv$/.test(f.name)) quando = f.modifiedTime > quando ? f.modifiedTime : quando;
   }
@@ -247,6 +252,14 @@ async function estrai(m) {
   try { tt = await tessereTerreno(m); } catch (e) { log("Terreno: " + e.message); }
   for (const r of tt) { try { const f = await trova(["Estrazione_mappe"].concat(r.split("/"))); ff.push([r, f]); tot += +f.size || 0; tTer += +f.size || 0; } catch (e) { log("  " + r.split("/").pop() + ": non c'e' sul Drive"); } }
   if (m.lingua) { LINGUA = m.lingua; linguaPython(); }
+  if ((m.uscite || []).includes("3d")) {               // 9 nov: cime e mare per il 3D (restano per le estrazioni seguenti)
+    for (const [n, f] of dati3d) {
+      const p = "/dati/_dati/" + n;
+      if (esiste(p)) continue;
+      try { const [d, c] = await scarica(f); scrivi(p, d); if (!c) log("  scaricato " + n + " (" + (d.length / 1048576).toFixed(1) + " MB)"); }
+      catch (e) { log("  " + n + ": non scaricato (" + e.message + ")"); }
+    }
+  }
   log(tw("scarico", nDxf, ff.length > nDxf ? tw("tessere", ff.length - nDxf, Math.round(tTer / 1048576)) : "", Math.round(tot / 1048576)));
   for (const [r, f] of ff) {
     const p = "/dati/" + r;
