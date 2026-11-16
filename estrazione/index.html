@@ -92,6 +92,9 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
 .lingua select { width: auto; padding: 6px 8px }
 @media (max-width: 440px) { .uscite { grid-template-columns: 1fr } .km { grid-template-columns: repeat(4, 1fr) } .km button { grid-column: 1 / -1 } }
 </style>
+<!-- TopoRescue (16 nov 2026): accesso solo dopo il login, registro degli accessi -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/TopoRescue/accesso.js" data-app="estrazione_web"></script>
 </head>
 <body>
 <div class="wrap">
