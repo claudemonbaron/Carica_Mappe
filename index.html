@@ -180,6 +180,38 @@ section { background: color-mix(in srgb, var(--panel) 90%, transparent) }
     <p class="piccolo" id="t-sel"></p>
     <p class="avviso" id="avv" hidden></p>
   </section>
+
+  <section aria-labelledby="h-qms">
+    <h2 id="h-qms" data-t="qmsTit">Mappe di zona per QMapShack (sul computer)</h2>
+    <div class="stack">
+      <p class="piccolo" data-t="qmsSpiega">Scarica in una cartella del computer le mappe provinciali della zona scelta sopra e delle province confinanti, per vederle in QMapShack.</p>
+      <div class="dest">
+        <label><input type="radio" name="qmsz" id="qz-prov" value="prov" checked><span><span data-t="qmsProv">Provincia scelta</span><small data-t="qmsConf">+ province confinanti</small></span></label>
+        <label><input type="radio" name="qmsz" id="qz-reg" value="reg"><span><span data-t="qmsReg">Regione / paese intero</span><small data-t="qmsConf">+ province confinanti</small></span></label>
+      </div>
+      <div class="piccolo" id="qms-info">–</div>
+      <button type="button" class="btn sec" id="b-qms" data-t="qmsBtn">Scarica per QMapShack…</button>
+      <p class="piccolo" id="qms-no" hidden data-t="qmsNo">Per scaricare in una cartella serve Chrome o Edge sul computer.</p>
+      <div class="piccolo" id="qms-passi" hidden>
+        <b data-t="qmsPassiT">In QMapShack:</b>
+        <ol>
+          <li data-t="qmsP1">Apri QMapShack (gratuito, per Mac e Windows).</li>
+          <li data-t="qmsP2">Menu File › Setup Map Paths (Imposta percorsi mappe): aggiungi la cartella appena scelta.</li>
+          <li data-t="qmsP3">Nella finestra Mappe accendi le province della zona; quelle con «_confinante» nel nome lasciale spente o accendile se servono.</li>
+        </ol>
+        <a href="https://github.com/Maproom/qmapshack/releases" target="_blank" rel="noopener" data-t="qmsInst">Non hai QMapShack? Installalo da qui (Mac e Windows)</a>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-prog">
+    <h2 id="h-prog" data-t="progTit">Programmi consigliati</h2>
+    <div class="prog">
+        <div><b>QMapShack</b><small data-t="progQms"></small></div><a class="btn sec pic" href="https://github.com/Maproom/qmapshack/releases" target="_blank" rel="noopener" data-t="progScarica">Scarica</a>
+        <div><b>QGIS</b><small data-t="progQgis"></small></div><a class="btn sec pic" href="https://qgis.org/download/" target="_blank" rel="noopener" data-t="progScarica">Scarica</a>
+    </div>
+    <p class="piccolo" data-t="progNota"></p>
+  </section>
   </div>
 
   <div class="col">
@@ -232,38 +264,6 @@ section { background: color-mix(in srgb, var(--panel) 90%, transparent) }
       <p class="esito" id="esito" role="status"></p>
       <pre class="log" id="log"></pre>
     </div>
-  </section>
-
-  <section aria-labelledby="h-qms">
-    <h2 id="h-qms" data-t="qmsTit">Mappe di zona per QMapShack (sul computer)</h2>
-    <div class="stack">
-      <p class="piccolo" data-t="qmsSpiega">Scarica in una cartella del computer le mappe provinciali della zona scelta sopra e delle province confinanti, per vederle in QMapShack.</p>
-      <div class="dest">
-        <label><input type="radio" name="qmsz" id="qz-prov" value="prov" checked><span><span data-t="qmsProv">Provincia scelta</span><small data-t="qmsConf">+ province confinanti</small></span></label>
-        <label><input type="radio" name="qmsz" id="qz-reg" value="reg"><span><span data-t="qmsReg">Regione / paese intero</span><small data-t="qmsConf">+ province confinanti</small></span></label>
-      </div>
-      <div class="piccolo" id="qms-info">–</div>
-      <button type="button" class="btn sec" id="b-qms" data-t="qmsBtn">Scarica per QMapShack…</button>
-      <p class="piccolo" id="qms-no" hidden data-t="qmsNo">Per scaricare in una cartella serve Chrome o Edge sul computer.</p>
-      <div class="piccolo" id="qms-passi" hidden>
-        <b data-t="qmsPassiT">In QMapShack:</b>
-        <ol>
-          <li data-t="qmsP1">Apri QMapShack (gratuito, per Mac e Windows).</li>
-          <li data-t="qmsP2">Menu File › Setup Map Paths (Imposta percorsi mappe): aggiungi la cartella appena scelta.</li>
-          <li data-t="qmsP3">Nella finestra Mappe accendi le province della zona; quelle con «_confinante» nel nome lasciale spente o accendile se servono.</li>
-        </ol>
-        <a href="https://github.com/Maproom/qmapshack/releases" target="_blank" rel="noopener" data-t="qmsInst">Non hai QMapShack? Installalo da qui (Mac e Windows)</a>
-      </div>
-    </div>
-  </section>
-
-  <section aria-labelledby="h-prog">
-    <h2 id="h-prog" data-t="progTit">Programmi consigliati</h2>
-    <div class="prog">
-        <div><b>QMapShack</b><small data-t="progQms"></small></div><a class="btn sec pic" href="https://github.com/Maproom/qmapshack/releases" target="_blank" rel="noopener" data-t="progScarica">Scarica</a>
-        <div><b>QGIS</b><small data-t="progQgis"></small></div><a class="btn sec pic" href="https://qgis.org/download/" target="_blank" rel="noopener" data-t="progScarica">Scarica</a>
-    </div>
-    <p class="piccolo" data-t="progNota"></p>
   </section>
 
   <section aria-labelledby="h-mem">
