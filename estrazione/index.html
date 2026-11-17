@@ -91,16 +91,40 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
 .lingua { align-self: flex-end; display: flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted) }   /* 2 nov */
 .lingua select { width: auto; padding: 6px 8px }
 @media (max-width: 440px) { .uscite { grid-template-columns: 1fr } .km { grid-template-columns: repeat(4, 1fr) } .km button { grid-column: 1 / -1 } }
+/* 17 nov: schermi larghi -> due colonne, cosi' le informazioni non finiscono sotto il bordo della finestra */
+@media (min-width: 1100px) {
+  .wrap { max-width: 1360px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; column-gap: 22px }
+  .wrap > header, .wrap > footer, .wrap > .avviso { grid-column: 1 / -1 }
+  .lista { max-height: 52vh }
+}
+.col { display: flex; flex-direction: column; gap: 18px; min-width: 0 }
+header .marchio { display: flex; align-items: center; gap: 12px }
+header .marchio img { width: 52px; height: 52px; flex: none }
+.prog { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; align-items: center }
+.prog small { display: block; color: var(--muted); font-size: .8rem }
+/* 17 nov: logo TopoRescue in filigrana sullo sfondo (fisso, tenue); riquadri appena trasparenti */
+body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: -1; opacity: .06;
+  background: url("../toporescue_filigrana.png") center 55% / min(72vmin, 620px) no-repeat }
+section { background: color-mix(in srgb, var(--panel) 90%, transparent) }
 </style>
 <!-- TopoRescue (16 nov 2026): accesso solo dopo il login, registro degli accessi -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/TopoRescue/accesso.js" data-app="estrazione_web"></script>
+<link rel="icon" href="../favicon.ico" sizes="any"><link rel="icon" href="../toporescue_icona.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="../toporescue_icona_192.png">
 </head>
 <body>
+<!-- 17 nov: schermata d'apertura TopoRescue (5 s, una volta per sessione, un clic la chiude) -->
+<div id="apertura" onclick="this.remove()" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.94);transition:opacity .6s;cursor:pointer">
+  <img src="../toporescue_apertura.png" alt="TopoRescue Maps - by Claude Monbaron, A.N.A. PN e P.C. RFVG" style="width:min(380px,80vw);height:auto">
+</div>
+<script>(function () { var a = document.getElementById("apertura");
+  try { if (sessionStorage.getItem("apertura_toporescue")) { a.remove(); return; } sessionStorage.setItem("apertura_toporescue", "1"); } catch (e) {}
+  setTimeout(function () { a.style.opacity = "0"; setTimeout(function () { a.remove(); }, 700); }, 5000); })();</script>
+
 <div class="wrap">
   <header>
     <label class="lingua"><span data-t="lingua">Lingua</span><select id="sel-lingua"></select></label>
-    <h1>Estrazione <span>Mappe</span></h1>
+    <div class="marchio"><img src="../toporescue_marchio.svg" alt="TopoRescue Maps"><h1>Estrazione <span>Mappe</span></h1></div>
     <p class="sub"><span data-t="sub">Carta tecnica di un comune e dei vicini: DXF per AutoCAD, GeoPackage e progetto QGIS. Lavora tutto nel browser, con lo stesso programma di Estrarre_Mappe.</span> <span id="info-dati"></span></p>
     <a class="altra" href="../"><span data-t="altra">Servono le mappe per il GPS Garmin?</span> <b>← Carica Mappe</b></a>
     <div class="riga" style="margin-top:10px">
@@ -110,6 +134,7 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
 
   <p class="avviso" id="avvio" role="status" data-t="avvio">Preparo il programma…</p>
 
+  <div class="col">
   <section aria-labelledby="h-zona">
     <h2 id="h-zona" data-t="h1">1 · Comune</h2>
     <div class="stack">
@@ -143,7 +168,9 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
       <p class="piccolo" id="t-sel"></p>
     </div>
   </section>
+  </div>
 
+  <div class="col">
   <section aria-labelledby="h-usc">
     <h2 id="h-usc" data-t="h3">3 · Cosa preparare</h2>
     <div class="uscite" id="uscite"></div>
@@ -181,6 +208,15 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
     </div>
   </section>
 
+  <section aria-labelledby="h-prog">
+    <h2 id="h-prog" data-t="progTit">Programmi consigliati</h2>
+    <div class="prog">
+        <div><b>QGIS</b><small data-t="progQgis"></small></div><a class="btn sec pic" href="https://qgis.org/download/" target="_blank" rel="noopener" data-t="progScarica">Scarica</a>
+        <div><b>QMapShack</b><small data-t="progQms"></small></div><a class="btn sec pic" href="https://github.com/Maproom/qmapshack/releases" target="_blank" rel="noopener" data-t="progScarica">Scarica</a>
+    </div>
+    <p class="piccolo" data-t="progNota"></p>
+  </section>
+
   <section aria-labelledby="h-cache">
     <h2 id="h-cache" class="piccolo" data-t="hCache">File già scaricati in questo browser</h2>
     <div class="riga">
@@ -193,6 +229,7 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
         <button type="button" class="btn sec pic" id="b-svuota-no" data-t="annulla">Annulla</button></div>
     </div>
   </section>
+  </div>
 
   <footer><span data-t="footer">Cartografia · UCS PC ANA PN e PC RFVG · uso gratuito per la protezione civile ·</span> <a href="../" data-t="footerCaricaLink">Carica Mappe (GPS Garmin)</a><br>
     <span id="versione"></span><span id="visite" hidden></span><span data-t="footer2"> · Visite ed estrazioni contate in forma anonima, senza cookie (GoatCounter).</span></footer>
@@ -201,7 +238,9 @@ footer { font-size: .8rem; color: var(--muted); text-align: center }
 <script data-goatcounter="https://claudemonbaron.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 <script>
 "use strict";
-const VERSIONE = "1.8 (9 nov 2026)";
+const VERSIONE = "2.0 (17 nov 2026)";   // 2.0: logo TopoRescue Maps, schermata d'apertura
+// 1.9:   // 1.9: due colonne sugli schermi larghi, Programmi consigliati (QGIS, QMapShack)
+// 1.8 (9 nov 2026):
 // ---------------------------------------------------------------- lingua (2 nov 2026)
 // La lingua scelta vale per tutte e due le pagine (localStorage "lingua_mappe"). Testi: {0} {1} ... = valori.
 const LINGUE = [["it", "Italiano"], ["en", "English"], ["fr", "Français"], ["de", "Deutsch"], ["es", "Español"]];
@@ -216,6 +255,20 @@ const I18N = {
             "Anleitung und Haftungsausschluss (PDF)", "Instrucciones y exención de responsabilidad (PDF)"],
   pdfDich: ["Fonti e dichiarazione di responsabilità (PDF)", "Sources and disclaimer (PDF)", "Sources et décharge de responsabilité (PDF)", "Quellen und Haftungsausschluss (PDF)", "Fuentes y exención de responsabilidad (PDF)"],
   lingua: ["Lingua", "Language", "Langue", "Sprache", "Idioma"],
+  progTit: ["Programmi consigliati", "Recommended programs", "Programmes recommandés", "Empfohlene Programme", "Programas recomendados"],
+  progQms: ["Per vedere le mappe Garmin e le tracce GPX sul computer.", "To view Garmin maps and GPX tracks on the computer.",
+            "Pour voir les cartes Garmin et les traces GPX sur l'ordinateur.", "Um Garmin-Karten und GPX-Spuren am Computer zu sehen.",
+            "Para ver los mapas Garmin y las trazas GPX en el ordenador."],
+  progQgis: ["Per aprire i progetti delle estrazioni (2D e 3D).", "To open the extraction projects (2D and 3D).",
+             "Pour ouvrir les projets des extractions (2D et 3D).", "Um die Extraktionsprojekte zu öffnen (2D und 3D).",
+             "Para abrir los proyectos de las extracciones (2D y 3D)."],
+  progNota: ["Gratuiti, per Mac e Windows. Su Windows, se l'installazione di QMapShack propone «MSVC++ Runtime», spuntalo.",
+             "Free, for Mac and Windows. On Windows, if the QMapShack installer offers «MSVC++ Runtime», tick it.",
+             "Gratuits, Mac et Windows. Sous Windows, si l'installation de QMapShack propose «MSVC++ Runtime», cochez-le.",
+             "Kostenlos, für Mac und Windows. Bietet die QMapShack-Installation unter Windows «MSVC++ Runtime» an, anhaken.",
+             "Gratuitos, para Mac y Windows. En Windows, si la instalación de QMapShack ofrece «MSVC++ Runtime», márcalo."],
+  progScarica: ["Scarica", "Download", "Télécharger", "Herunterladen", "Descargar"],
+
   avvio: ["Preparo il programma…", "Preparing the program…", "Préparation du programme…", "Programm wird vorbereitet…", "Preparo el programa…"],
   avvioMob: ["Preparo il programma… (su telefono e tablet ci vuole un po' di più)", "Preparing the program… (takes a bit longer on phones and tablets)",
              "Préparation du programme… (un peu plus long sur téléphone et tablette)", "Programm wird vorbereitet… (auf Handy und Tablet etwas länger)",
