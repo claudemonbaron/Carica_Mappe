@@ -99,16 +99,40 @@ a.btn { text-decoration: none }   /* 2 nov: link ai PDF con l'aspetto dei pulsan
 .lingua select { width: auto; padding: 6px 8px }
 @media (max-width: 420px) { .dest { grid-template-columns: 1fr } }
 @media (prefers-reduced-motion: no-preference) { .btn, .seg button { transition: background .15s, color .15s } .barra div { transition: width .2s } }
+/* 17 nov: schermi larghi -> due colonne, cosi' le informazioni non finiscono sotto il bordo della finestra */
+@media (min-width: 1100px) {
+  .wrap { max-width: 1360px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; column-gap: 22px }
+  .wrap > header, .wrap > footer, .wrap > .avviso { grid-column: 1 / -1 }
+  .lista { max-height: 52vh }
+}
+.col { display: flex; flex-direction: column; gap: 18px; min-width: 0 }
+header .marchio { display: flex; align-items: center; gap: 12px }
+header .marchio img { width: 52px; height: 52px; flex: none }
+.prog { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; align-items: center }
+.prog small { display: block; color: var(--muted); font-size: .8rem }
+/* 17 nov: logo TopoRescue in filigrana sullo sfondo (fisso, tenue); riquadri appena trasparenti */
+body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: -1; opacity: .06;
+  background: url("toporescue_filigrana.png") center 55% / min(72vmin, 620px) no-repeat }
+section { background: color-mix(in srgb, var(--panel) 90%, transparent) }
 </style>
 <!-- TopoRescue (16 nov 2026): accesso solo dopo il login, registro degli accessi -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/TopoRescue/accesso.js" data-app="carica_web"></script>
+<link rel="icon" href="favicon.ico" sizes="any"><link rel="icon" href="toporescue_icona.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="toporescue_icona_192.png">
 </head>
 <body>
+<!-- 17 nov: schermata d'apertura TopoRescue (5 s, una volta per sessione, un clic la chiude) -->
+<div id="apertura" onclick="this.remove()" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.94);transition:opacity .6s;cursor:pointer">
+  <img src="toporescue_apertura.png" alt="TopoRescue Maps - by Claude Monbaron, A.N.A. PN e P.C. RFVG" style="width:min(380px,80vw);height:auto">
+</div>
+<script>(function () { var a = document.getElementById("apertura");
+  try { if (sessionStorage.getItem("apertura_toporescue")) { a.remove(); return; } sessionStorage.setItem("apertura_toporescue", "1"); } catch (e) {}
+  setTimeout(function () { a.style.opacity = "0"; setTimeout(function () { a.remove(); }, 700); }, 5000); })();</script>
+
 <div class="wrap">
   <header>
     <label class="lingua"><span data-t="lingua">Lingua</span><select id="sel-lingua"></select></label>
-    <h1>Carica <span>Mappe</span></h1>
+    <div class="marchio"><img src="toporescue_marchio.svg" alt="TopoRescue Maps"><h1>Carica <span>Mappe</span></h1></div>
     <p class="sub"><span data-t="sub">Mappe CTRN 1:5000 per GPS Garmin, dal Drive della protezione civile.</span> <span id="info-dati" data-t="leggoElenco">Leggo l'elenco delle mappe…</span></p>
     <a class="altra" href="estrazione/"><span data-t="altra">Serve la carta per AutoCAD o QGIS?</span> <b>Estrazione Mappe →</b></a>
     <div class="riga" style="margin-top:10px">
@@ -118,6 +142,7 @@ a.btn { text-decoration: none }   /* 2 nov: link ai PDF con l'aspetto dei pulsan
 
   <p class="avviso" id="errore-dati" hidden></p>
 
+  <div class="col">
   <section aria-labelledby="h-zona">
     <h2 id="h-zona" data-t="h1">1 · Zona</h2>
     <div class="stack">
@@ -155,7 +180,9 @@ a.btn { text-decoration: none }   /* 2 nov: link ai PDF con l'aspetto dei pulsan
     <p class="piccolo" id="t-sel"></p>
     <p class="avviso" id="avv" hidden></p>
   </section>
+  </div>
 
+  <div class="col">
   <section aria-labelledby="h-gps">
     <h2 id="h-gps" data-t="h3">3 · GPS</h2>
     <div class="stack">
@@ -207,6 +234,38 @@ a.btn { text-decoration: none }   /* 2 nov: link ai PDF con l'aspetto dei pulsan
     </div>
   </section>
 
+  <section aria-labelledby="h-qms">
+    <h2 id="h-qms" data-t="qmsTit">Mappe di zona per QMapShack (sul computer)</h2>
+    <div class="stack">
+      <p class="piccolo" data-t="qmsSpiega">Scarica in una cartella del computer le mappe provinciali della zona scelta sopra e delle province confinanti, per vederle in QMapShack.</p>
+      <div class="dest">
+        <label><input type="radio" name="qmsz" id="qz-prov" value="prov" checked><span><span data-t="qmsProv">Provincia scelta</span><small data-t="qmsConf">+ province confinanti</small></span></label>
+        <label><input type="radio" name="qmsz" id="qz-reg" value="reg"><span><span data-t="qmsReg">Regione / paese intero</span><small data-t="qmsConf">+ province confinanti</small></span></label>
+      </div>
+      <div class="piccolo" id="qms-info">–</div>
+      <button type="button" class="btn sec" id="b-qms" data-t="qmsBtn">Scarica per QMapShack…</button>
+      <p class="piccolo" id="qms-no" hidden data-t="qmsNo">Per scaricare in una cartella serve Chrome o Edge sul computer.</p>
+      <div class="piccolo" id="qms-passi" hidden>
+        <b data-t="qmsPassiT">In QMapShack:</b>
+        <ol>
+          <li data-t="qmsP1">Apri QMapShack (gratuito, per Mac e Windows).</li>
+          <li data-t="qmsP2">Menu File › Setup Map Paths (Imposta percorsi mappe): aggiungi la cartella appena scelta.</li>
+          <li data-t="qmsP3">Nella finestra Mappe accendi le province della zona; quelle con «_confinante» nel nome lasciale spente o accendile se servono.</li>
+        </ol>
+        <a href="https://github.com/Maproom/qmapshack/releases" target="_blank" rel="noopener" data-t="qmsInst">Non hai QMapShack? Installalo da qui (Mac e Windows)</a>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-prog">
+    <h2 id="h-prog" data-t="progTit">Programmi consigliati</h2>
+    <div class="prog">
+        <div><b>QMapShack</b><small data-t="progQms"></small></div><a class="btn sec pic" href="https://github.com/Maproom/qmapshack/releases" target="_blank" rel="noopener" data-t="progScarica">Scarica</a>
+        <div><b>QGIS</b><small data-t="progQgis"></small></div><a class="btn sec pic" href="https://qgis.org/download/" target="_blank" rel="noopener" data-t="progScarica">Scarica</a>
+    </div>
+    <p class="piccolo" data-t="progNota"></p>
+  </section>
+
   <section aria-labelledby="h-mem">
     <h2 id="h-mem" data-t="hMem">Memoria del browser</h2>
     <div class="stack">
@@ -219,6 +278,7 @@ a.btn { text-decoration: none }   /* 2 nov: link ai PDF con l'aspetto dei pulsan
       </div>
     </div>
   </section>
+  </div>
 
   <footer><span data-t="footer">Cartografia Garmin · UCS PC ANA PN e PC RFVG · uso gratuito per la protezione civile ·</span> <a href="estrazione/" data-t="footerEstr">Estrazione Mappe (DXF, QGIS)</a> · <span id="versione"></span><span id="visite" hidden></span><br><span data-t="footer2">Visite e caricamenti contati in forma anonima, senza cookie (GoatCounter).</span></footer>
 </div>
@@ -228,12 +288,60 @@ a.btn { text-decoration: none }   /* 2 nov: link ai PDF con l'aspetto dei pulsan
 <script>
 "use strict";
 // ---------------------------------------------------------------- impostazioni
-const VERSIONE = "2.0 (9 nov 2026)";   // 2.0: lista GPX ("Seleziona GPX…") da copiare in Garmin/GPX insieme alla mappa (Chrome/Edge)
+const VERSIONE = "2.2 (17 nov 2026)";   // 2.2: logo TopoRescue Maps, schermata d'apertura, due colonne, Programmi consigliati
+// 2.1:   // 2.1: Vista QMapShack (provinciali della zona + confinanti in una cartella, Chrome/Edge)
+// 2.0 (9 nov 2026):   // 2.0: lista GPX ("Seleziona GPX…") da copiare in Garmin/GPX insieme alla mappa (Chrome/Edge)
 // ---------------------------------------------------------------- lingua (2 nov 2026)
 // La lingua scelta vale per tutte e due le pagine (localStorage "lingua_mappe"). Testi: {0} {1} ... = valori.
 const LINGUE = [["it", "Italiano"], ["en", "English"], ["fr", "Français"], ["de", "Deutsch"], ["es", "Español"]];
 const I18N = {
   lingua: ["Lingua", "Language", "Langue", "Sprache", "Idioma"],
+  progTit: ["Programmi consigliati", "Recommended programs", "Programmes recommandés", "Empfohlene Programme", "Programas recomendados"],
+  progQms: ["Per vedere le mappe Garmin e le tracce GPX sul computer.", "To view Garmin maps and GPX tracks on the computer.",
+            "Pour voir les cartes Garmin et les traces GPX sur l'ordinateur.", "Um Garmin-Karten und GPX-Spuren am Computer zu sehen.",
+            "Para ver los mapas Garmin y las trazas GPX en el ordenador."],
+  progQgis: ["Per aprire i progetti delle estrazioni (2D e 3D).", "To open the extraction projects (2D and 3D).",
+             "Pour ouvrir les projets des extractions (2D et 3D).", "Um die Extraktionsprojekte zu öffnen (2D und 3D).",
+             "Para abrir los proyectos de las extracciones (2D y 3D)."],
+  progNota: ["Gratuiti, per Mac e Windows. Su Windows, se l'installazione di QMapShack propone «MSVC++ Runtime», spuntalo.",
+             "Free, for Mac and Windows. On Windows, if the QMapShack installer offers «MSVC++ Runtime», tick it.",
+             "Gratuits, Mac et Windows. Sous Windows, si l'installation de QMapShack propose «MSVC++ Runtime», cochez-le.",
+             "Kostenlos, für Mac und Windows. Bietet die QMapShack-Installation unter Windows «MSVC++ Runtime» an, anhaken.",
+             "Gratuitos, para Mac y Windows. En Windows, si la instalación de QMapShack ofrece «MSVC++ Runtime», márcalo."],
+  progScarica: ["Scarica", "Download", "Télécharger", "Herunterladen", "Descargar"],
+
+  qmsTit: ["Mappe di zona per QMapShack (sul computer)", "Zone maps for QMapShack (on the computer)", "Cartes de zone pour QMapShack (sur l'ordinateur)", "Gebietskarten für QMapShack (am Computer)", "Mapas de zona para QMapShack (en el ordenador)"],
+  qmsSpiega: ["Scarica in una cartella del computer le mappe provinciali della zona scelta sopra e delle province confinanti, per vederle in QMapShack.",
+              "Downloads to a folder on the computer the provincial maps of the zone chosen above and of the neighbouring provinces, to view them in QMapShack.",
+              "Télécharge dans un dossier de l'ordinateur les cartes provinciales de la zone choisie ci-dessus et des provinces voisines, pour les voir dans QMapShack.",
+              "Lädt die Provinzkarten des oben gewählten Gebiets und der Nachbarprovinzen in einen Ordner am Computer, um sie in QMapShack zu sehen.",
+              "Descarga en una carpeta del ordenador los mapas provinciales de la zona elegida arriba y de las provincias limítrofes, para verlos en QMapShack."],
+  qmsProv: ["Provincia scelta", "Chosen province", "Province choisie", "Gewählte Provinz", "Provincia elegida"],
+  qmsReg: ["Regione / paese intero", "Whole region / country", "Région / pays entier", "Ganze Region / ganzes Land", "Región / país entero"],
+  qmsConf: ["+ province confinanti", "+ neighbouring provinces", "+ provinces voisines", "+ Nachbarprovinzen", "+ provincias limítrofes"],
+  qmsBtn: ["Scarica per QMapShack…", "Download for QMapShack…", "Télécharger pour QMapShack…", "Für QMapShack herunterladen…", "Descargar para QMapShack…"],
+  qmsNo: ["Per scaricare in una cartella serve Chrome o Edge sul computer.", "Downloading to a folder needs Chrome or Edge on a computer.",
+          "Pour télécharger dans un dossier il faut Chrome ou Edge sur un ordinateur.", "Zum Herunterladen in einen Ordner braucht es Chrome oder Edge am Computer.",
+          "Para descargar en una carpeta hace falta Chrome o Edge en el ordenador."],
+  qmsInfo: ["{0} accese + {1} confinanti: {2}", "{0} on + {1} neighbours: {2}", "{0} allumées + {1} voisines : {2}", "{0} an + {1} Nachbarn: {2}", "{0} encendidas + {1} limítrofes: {2}"],
+  qmsScelta: ["Scegli prima una provincia (sezione 1).", "First choose a province (section 1).", "Choisissez d'abord une province (section 1).",
+              "Zuerst eine Provinz wählen (Abschnitt 1).", "Elige primero una provincia (sección 1)."],
+  qmsFatto: ["Fatto: {0} mappe nella cartella «{1}».", "Done: {0} maps in folder «{1}».", "Terminé : {0} cartes dans le dossier «{1}».",
+             "Fertig: {0} Karten im Ordner «{1}».", "Hecho: {0} mapas en la carpeta «{1}»."],
+  qmsPassiT: ["In QMapShack:", "In QMapShack:", "Dans QMapShack :", "In QMapShack:", "En QMapShack:"],
+  qmsP1: ["Apri QMapShack (gratuito, per Mac e Windows).", "Open QMapShack (free, for Mac and Windows).", "Ouvrez QMapShack (gratuit, Mac et Windows).",
+          "QMapShack öffnen (kostenlos, für Mac und Windows).", "Abre QMapShack (gratuito, para Mac y Windows)."],
+  qmsP2: ["Menu File › Setup Map Paths (Imposta percorsi mappe): aggiungi la cartella appena scelta.",
+          "Menu File › Setup Map Paths: add the folder you just chose.", "Menu File › Setup Map Paths : ajoutez le dossier choisi.",
+          "Menü File › Setup Map Paths: den eben gewählten Ordner hinzufügen.", "Menú File › Setup Map Paths: añade la carpeta elegida."],
+  qmsP3: ["Nella finestra Mappe accendi le province della zona; quelle con «_confinante» nel nome lasciale spente o accendile se servono.",
+          "In the Maps window switch on the zone's provinces; leave those with «_confinante» in the name off, or switch them on if needed.",
+          "Dans la fenêtre Cartes allumez les provinces de la zone ; laissez éteintes celles avec «_confinante» dans le nom, ou allumez-les au besoin.",
+          "Im Fenster Karten die Provinzen des Gebiets einschalten; die mit «_confinante» im Namen aus lassen oder bei Bedarf einschalten.",
+          "En la ventana Mapas enciende las provincias de la zona; deja apagadas las que llevan «_confinante» en el nombre, o enciéndelas si hacen falta."],
+  qmsInst: ["Non hai QMapShack? Installalo da qui (Mac e Windows)", "No QMapShack? Install it from here (Mac and Windows)",
+            "Pas de QMapShack ? Installez-le d'ici (Mac et Windows)", "Kein QMapShack? Hier installieren (Mac und Windows)",
+            "¿No tienes QMapShack? Instálalo desde aquí (Mac y Windows)"],
   gpxTit: ["Tracce GPX", "GPX tracks", "Traces GPX", "GPX-Tracks", "Tracks GPX"],
   selGpx: ["Seleziona GPX…", "Select GPX…", "Sélectionner GPX…", "GPX auswählen…", "Seleccionar GPX…"],
   svuotaGpx: ["Svuota lista", "Clear list", "Vider la liste", "Liste leeren", "Vaciar lista"],
@@ -849,6 +957,49 @@ function cambiaLingua() {        // 2 nov: tutto quello che la pagina ha scritto
   if (D) disegna();
   if (gps.pronto) leggiGps();
 }
+// ---------------------------------------------------------------- Vista QMapShack (17 nov 2026)
+// Provinciali della zona (accese in QMapShack) + province confinanti (nome «_confinante», da lasciare spente),
+// scritte in una cartella scelta (Chrome/Edge). Il browser non puo' avviare QMapShack: si danno i 3 passi.
+function zonaQms() {
+  const reg = document.querySelector("input[name=qmsz]:checked").value === "reg";
+  if (!reg && st.prov < 0) return null;
+  const acc = reg ? new Set(provinceDi(st.reg).map(([i]) => i)) : new Set([st.prov]);
+  const conf = new Set();
+  D.c.forEach(c => { if (acc.has(c.prov)) c.vic.forEach(j => { const p = D.c[j].prov; if (!acc.has(p)) conf.add(p); }); });
+  const ok = i => D.p[i] && D.p[i].perc;
+  return { acc: [...acc].filter(ok), conf: [...conf].filter(ok) };
+}
+function disegnaQms() {
+  if (!D) return;
+  const z = zonaQms();
+  if (!z) { $("qms-info").textContent = t("qmsScelta"); $("b-qms").disabled = true; return; }
+  const mb = [...z.acc, ...z.conf].reduce((a, i) => a + (D.p[i].dim || 0), 0) / 1048576;
+  $("qms-info").textContent = t("qmsInfo", z.acc.length, z.conf.length, z.conf.map(i => bello(D.p[i].nome)).join(", ") || "–") +
+    "  ·  " + Math.round(mb) + " MB";
+  $("b-qms").disabled = !PUO_SCRIVERE;
+}
+async function scaricaQms() {
+  const z = zonaQms(); if (!z) return;
+  let dir;
+  try { dir = await window.showDirectoryPicker({ id: "qmapshack", mode: "readwrite" }); } catch (e) { return; }
+  $("b-qms").disabled = true; $("sez-av").hidden = false;
+  const voci = [...z.acc.map(i => [i, false]), ...z.conf.map(i => [i, true])];
+  let n = 0;
+  try {
+    for (const [i, conf] of voci) {
+      const p = D.p[i];
+      const f = await trova(p.perc.split("/"));
+      log("  " + bello(p.nome) + (conf ? " (confinante)" : "") + "…");
+      const d = await scarica(f, () => {});
+      const nome = p.nome.replace(/^Prov/, "") + (conf ? "_confinante" : "") + ".img";
+      const w = await (await dir.getFileHandle(nome, { create: true })).createWritable();
+      await w.write(d); await w.close(); n++;
+    }
+    log(t("qmsFatto", n, dir.name)); $("qms-passi").hidden = false;
+  } catch (e) { log(String(e.message || e)); }
+  $("b-qms").disabled = false;
+}
+
 async function avvio() {
   traduciPagina(); menuLingua($("sel-lingua"), cambiaLingua); testiGps();
   $("versione").textContent = t("versione", VERSIONE);
@@ -893,6 +1044,10 @@ async function avvio() {
   ["n", "s", "e", "o"].forEach(k => $("km-" + k).addEventListener("input", () => { st.off.clear(); disegna(); }));
   document.querySelectorAll("input[name=dest]").forEach(r => r.addEventListener("change", disegna));
   $("b-carica").addEventListener("click", () => carica(false));
+  $("qms-no").hidden = PUO_SCRIVERE;                                   // 17 nov: Vista QMapShack
+  $("b-qms").addEventListener("click", scaricaQms);
+  document.querySelectorAll("input[name=qmsz]").forEach(x => x.addEventListener("change", disegnaQms));
+  $("sel-reg").addEventListener("change", disegnaQms); $("sel-prov").addEventListener("change", disegnaQms);
   $("b-scarica").addEventListener("click", () => carica(true));
   $("b-svuota").addEventListener("click", chiediSvuota);
   $("b-svuota-si").addEventListener("click", svuota);
@@ -906,7 +1061,7 @@ async function avvio() {
     const h = await dbGet("gps");
     if (h) { gps.cart = h; await leggiGps(); }
   }
-  disegna();
+  disegna(); disegnaQms();
 }
 avvio();
 </script>
