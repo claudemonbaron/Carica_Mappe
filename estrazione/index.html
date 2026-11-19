@@ -238,7 +238,7 @@ section { background: color-mix(in srgb, var(--panel) 90%, transparent) }
 <script data-goatcounter="https://claudemonbaron.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 <script>
 "use strict";
-const VERSIONE = "2.0 (17 nov 2026)";   // 2.0: logo TopoRescue Maps, schermata d'apertura
+const VERSIONE = "2.1 (19 nov 2026)";   // 2.1: Drive TopoRescue privato (permesso dal cancello Supabase). 2.0: logo TopoRescue Maps, schermata d'apertura
 // 1.9:   // 1.9: due colonne sugli schermi larghi, Programmi consigliati (QGIS, QMapShack)
 // 1.8 (9 nov 2026):
 // ---------------------------------------------------------------- lingua (2 nov 2026)
@@ -422,8 +422,7 @@ function menuLingua(sel, dopo) {
   sel.addEventListener("change", () => { LINGUA = sel.value; try { localStorage.setItem("lingua_mappe", LINGUA); } catch (e) {} traduciPagina(); if (dopo) dopo(); });
 }
 
-const CHIAVE_API = "AIzaSyA3eA9-4n6jc6llgXn805Pus54awLbTxn0";                                   // la stessa di Carica Mappe (limitata a claudemonbaron.github.io)
-const RADICE = "1Qss5yBi3WuEZ-LSkcJ1TjaKrd8QHeOuu";      // Cartografia_cond sul Drive
+// 2.1 (19 nov): Drive TopoRescue PRIVATO: ID e permesso dal cancello Supabase (accesso.js), passati al lavoro.
 const $ = id => document.getElementById(id);
 const leggi = (k, d) => { try { const v = localStorage.getItem("em_" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
 const salva = (k, v) => { try { localStorage.setItem("em_" + k, JSON.stringify(v)); } catch (e) {} };
@@ -672,9 +671,13 @@ async function visite() {      // le visite di tutte e due le pagine (GoatCounte
 (async function () {
   traduciPagina(); menuLingua($("sel-lingua"), cambiaLingua);
   $("versione").textContent = t("versione", VERSIONE); visite();
-  if (!CHIAVE_API) { $("avvio").textContent = t("chiave"); return; }
   if (MOBILE) $("avvio").textContent = t("avvioMob");
-  w.postMessage({ t: "avvio", chiave: CHIAVE_API, radice: RADICE, lingua: LINGUA });
+  let p;
+  try { p = await window.TopoRescue.permessoDrive(); }
+  catch (e) { $("avvio").textContent = e.message; return; }
+  w.postMessage({ t: "avvio", token: p.token, radice: p.radice, lingua: LINGUA });
+  // il permesso vale un'ora: ogni 5 minuti si chiede quello aggiornato (di solito e' lo stesso) e si passa al lavoro
+  setInterval(() => window.TopoRescue.permessoDrive().then(q => w.postMessage({ t: "permesso", token: q.token }), () => {}), 300000);
   $("sel-reg").addEventListener("change", e => { st.reg = e.target.value; st.prov = ""; st.com = ""; $("cerca").value = ""; st.modo = "solo"; riempiProv(); aggiorna(); });
   $("sel-prov").addEventListener("change", e => { st.prov = e.target.value; st.com = ""; $("cerca").value = ""; st.modo = "solo"; riempiProv(); aggiorna(); });
   $("cerca").addEventListener("input", e => { const t = e.target.value.normalize("NFC").trim().toLowerCase();

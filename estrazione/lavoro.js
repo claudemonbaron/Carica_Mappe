@@ -15,7 +15,7 @@ const FONT = "https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSan
 const API = "https://www.googleapis.com/drive/v3/files";
 importScripts(PYODIDE + "pyodide.js");
 
-let py = null, CHIAVE = "", RADICE = "";
+let py = null, TOKEN = "", RADICE = "";        // 19 nov: permesso del Drive privato (dalla pagina) al posto della chiave
 const SOLO_3D = new Set(["cime.csv", "mare.json"]);     // 9 nov: file di _dati che servono solo al 3D
 const dati3d = new Map();                                // nome -> file del Drive, scaricati in estrai() se serve
 const elenchi = new Map();
@@ -27,7 +27,7 @@ async function driveGet(url, tentativi = 3) {
   let r = null, ultimo = null;
   for (let i = 0; i < tentativi; i++) {
     try {
-      r = await fetch(url, { cache: "no-store" });
+      r = await fetch(url, { cache: "no-store", headers: { Authorization: "Bearer " + TOKEN } });
       if (r.ok || (r.status !== 429 && r.status < 500)) break;
       ultimo = new Error("Drive: " + r.status);
     } catch (e) { ultimo = e; r = null; }
@@ -41,7 +41,7 @@ async function elenco(id) {
   if (elenchi.has(id)) return elenchi.get(id);
   const out = new Map(); let tok = "";
   do {
-    const q = new URLSearchParams({ q: "'" + id + "' in parents and trashed=false", pageSize: "1000", key: CHIAVE,
+    const q = new URLSearchParams({ q: "'" + id + "' in parents and trashed=false", pageSize: "1000",
       fields: "nextPageToken,files(id,name,mimeType,size,modifiedTime)", supportsAllDrives: "true", includeItemsFromAllDrives: "true" });
     if (tok) q.set("pageToken", tok);
     const d = await (await driveGet(API + "?" + q)).json();
@@ -63,8 +63,8 @@ async function trova(parti) {
 }
 async function contenuto(f) {
   let errore = null;
-  for (const u of ["https://www.googleapis.com/download/drive/v3/files/" + f.id + "?alt=media&key=" + CHIAVE,
-                   API + "/" + f.id + "?alt=media&key=" + CHIAVE]) {
+  for (const u of ["https://www.googleapis.com/download/drive/v3/files/" + f.id + "?alt=media",
+                   API + "/" + f.id + "?alt=media"]) {
     try { return new Uint8Array(await (await driveGet(u)).arrayBuffer()); } catch (e) { errore = e; }
   }
   throw errore;
@@ -118,7 +118,7 @@ function linguaPython() { try { if (py) py.runPython("import estrarre_mappe as _
 
 // ---------------------------------------------------------------- comandi
 async function avvio(m) {
-  CHIAVE = m.chiave; RADICE = m.radice; LINGUA = m.lingua || "it";
+  TOKEN = m.token; RADICE = m.radice; LINGUA = m.lingua || "it";
   manda("stato", { s: tw("python") });
   py = await loadPyodide({ indexURL: PYODIDE });
   py.setStdout({ batched: log }); py.setStderr({ batched: log });
@@ -316,6 +316,7 @@ onmessage = async (e) => {
   try {
     let v;
     if (m.t === "avvio") return await avvio(m);
+    if (m.t === "permesso") { TOKEN = m.token || TOKEN; return; }
     if (m.t === "lingua") { LINGUA = m.lingua || "it"; linguaPython(); return; }
     if (m.t === "vicini") v = vicini(m);
     else if (m.t === "rettangolo") v = rettangolo(m);
