@@ -288,7 +288,7 @@ section { background: color-mix(in srgb, var(--panel) 90%, transparent) }
 <script>
 "use strict";
 // ---------------------------------------------------------------- impostazioni
-const VERSIONE = "2.2 (17 nov 2026)";   // 2.2: logo TopoRescue Maps, schermata d'apertura, due colonne, Programmi consigliati
+const VERSIONE = "2.3 (19 nov 2026)";   // 2.3: Drive TopoRescue privato (permesso dal cancello Supabase). 2.2: logo TopoRescue Maps, schermata d'apertura, due colonne, Programmi consigliati
 // 2.1:   // 2.1: Vista QMapShack (provinciali della zona + confinanti in una cartella, Chrome/Edge)
 // 2.0 (9 nov 2026):   // 2.0: lista GPX ("Seleziona GPX…") da copiare in Garmin/GPX insieme alla mappa (Chrome/Edge)
 // ---------------------------------------------------------------- lingua (2 nov 2026)
@@ -512,8 +512,13 @@ function menuLingua(sel, dopo) {
   sel.addEventListener("change", () => { LINGUA = sel.value; try { localStorage.setItem("lingua_mappe", LINGUA); } catch (e) {} traduciPagina(); if (dopo) dopo(); });
 }
 
-const CHIAVE_API = "AIzaSyA3eA9-4n6jc6llgXn805Pus54awLbTxn0";                                   // chiave API Google (solo Drive API, limitata a questo sito)
-const RADICE = "1Qss5yBi3WuEZ-LSkcJ1TjaKrd8QHeOuu";      // Cartografia_cond sul Drive (link pubblico, sola lettura)
+// 2.3 (19 nov): Drive TopoRescue PRIVATO: niente piu' chiave ne' ID nella pagina. ID e permesso di lettura dal
+// cancello Supabase, tramite accesso.js (window.TopoRescue.permessoDrive).
+let RADICE = "";
+async function permessoD(forza) {
+  if (!window.TopoRescue || !window.TopoRescue.permessoDrive) throw new Error("accesso TopoRescue non caricato");
+  const p = await window.TopoRescue.permessoDrive(forza); RADICE = p.radice; return p.token;
+}
 const INDICE = ["Estrazione_mappe", "_dati", "indice_img.csv"];
 const KM_GRADO = 111.32, LIMITE_TESSERE = 2000;
 const API = "https://www.googleapis.com/drive/v3/files";
@@ -536,10 +541,11 @@ const elenchi = new Map();
 async function driveGet(url, tentativi = 4) {
   // Google a volte non risponde (file appena aggiornato sul Drive, troppi download insieme): il browser lo vede
   // come "Failed to fetch". Si riprova fino a 4 volte con una pausa crescente.
-  let r = null, ultimo = null;
+  let r = null, ultimo = null, rinnovato = false;
   for (let i = 0; i < tentativi; i++) {
     try {
-      r = await fetch(url, { cache: "no-store" });
+      r = await fetch(url, { cache: "no-store", headers: { Authorization: "Bearer " + await permessoD() } });
+      if (r.status === 401 && !rinnovato) { rinnovato = true; await permessoD(true); i--; continue; }   // permesso scaduto
       if (r.ok || (r.status !== 429 && r.status < 500)) break;
       ultimo = new Error("Drive: " + r.status);
     } catch (e) { ultimo = e; r = null; }
@@ -556,7 +562,7 @@ async function elenco(id) {
   if (elenchi.has(id)) return elenchi.get(id);
   const out = new Map(); let tok = "";
   do {
-    const q = new URLSearchParams({ q: "'" + id + "' in parents and trashed=false", pageSize: "1000", key: CHIAVE_API,
+    const q = new URLSearchParams({ q: "'" + id + "' in parents and trashed=false", pageSize: "1000",
       fields: "nextPageToken,files(id,name,mimeType,size,modifiedTime)", supportsAllDrives: "true", includeItemsFromAllDrives: "true" });
     if (tok) q.set("pageToken", tok);
     const d = await (await driveGet(API + "?" + q)).json();
@@ -567,6 +573,7 @@ async function elenco(id) {
   return out;
 }
 async function trova(parti) {
+  if (!RADICE) await permessoD();
   let id = RADICE, f = null;
   for (const p of parti) {
     const el = await elenco(id);
@@ -578,8 +585,8 @@ async function trova(parti) {
 }
 // Due indirizzi ufficiali per il contenuto dei file: il primo (download) ha retto anche quando l'altro rifiutava
 // tutti i download (22 ott sera, "Failed to fetch"); se uno non risponde si prova l'altro.
-const urlFiles = f => ["https://www.googleapis.com/download/drive/v3/files/" + f.id + "?alt=media&key=" + CHIAVE_API,
-                       API + "/" + f.id + "?alt=media&key=" + CHIAVE_API];
+const urlFiles = f => ["https://www.googleapis.com/download/drive/v3/files/" + f.id + "?alt=media",
+                       API + "/" + f.id + "?alt=media"];
 async function driveFile(f) {
   let errore = null;
   for (const u of urlFiles(f)) { try { return await driveGet(u, 3); } catch (e) { errore = e; } }
@@ -734,7 +741,7 @@ let ultimoLink = 0;
 async function linkDiretto(v) {
   const io = ++ultimoLink;
   try { const f = await trova(v.perc.split("/")); if (io !== ultimoLink) return;
-    $("link-diretto").href = urlDiretto(f); $("link-diretto").hidden = false; } catch (e) {}
+    /* 2.3: col Drive privato il collegamento diretto non funziona piu': resta nascosto */ void f; } catch (e) {}
 }
 
 // ---------------------------------------------------------------- GPS (File System Access, Chrome/Edge)
@@ -1006,7 +1013,6 @@ async function avvio() {
   visite();
   $("gps-si").hidden = !PUO_SCRIVERE; $("gps-no").hidden = PUO_SCRIVERE;
   if (PUO_SCRIVERE) initGpx();                                         // 2.0
-  if (!CHIAVE_API) { $("errore-dati").hidden = false; $("errore-dati").textContent = t("chiave"); $("info-dati").textContent = ""; return; }
   try {
     const f = await trova(INDICE);
     const testo = await (await driveFile(f)).text();
