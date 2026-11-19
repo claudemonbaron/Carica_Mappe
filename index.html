@@ -288,7 +288,7 @@ section { background: color-mix(in srgb, var(--panel) 90%, transparent) }
 <script>
 "use strict";
 // ---------------------------------------------------------------- impostazioni
-const VERSIONE = "2.3 (19 nov 2026)";   // 2.3: Drive TopoRescue privato (permesso dal cancello Supabase). 2.2: logo TopoRescue Maps, schermata d'apertura, due colonne, Programmi consigliati
+const VERSIONE = "2.3.1 (19 nov 2026)";   // 2.3.1: GPS letto una volta sola (file doppi). 2.3: Drive TopoRescue privato (permesso dal cancello Supabase). 2.2: logo TopoRescue Maps, schermata d'apertura, due colonne, Programmi consigliati
 // 2.1:   // 2.1: Vista QMapShack (provinciali della zona + confinanti in una cartella, Chrome/Edge)
 // 2.0 (9 nov 2026):   // 2.0: lista GPX ("Seleziona GPX…") da copiare in Garmin/GPX insieme alla mappa (Chrome/Edge)
 // ---------------------------------------------------------------- lingua (2 nov 2026)
@@ -773,18 +773,26 @@ async function permesso(h, chiedi) {
   return chiedi && (await h.requestPermission(o)) === "granted";
 }
 async function leggiGps() {
-  gps.pronto = false; gps.nomi = new Set(); gps.tessPer = new Map(); gps.tessere = 0; gps.file = [];
+  // 2.3.1 (19 nov): due letture partite insieme (avvio + permesso, o "Rileggi") riempivano la stessa lista e ogni
+  // file compariva due volte, con le tessere contate doppie. Ora ogni lettura lavora su liste sue e vale solo l'ultima.
+  const giro = (gps.giro = (gps.giro || 0) + 1);
+  gps.pronto = false;
+  const nomi = new Set(), tessPer = new Map(), file = []; let tessere = 0;
   try {
     if (!gps.cart || !(await permesso(gps.cart, false))) throw new Error("permesso");
     for await (const [n, h] of gps.cart.entries()) {
       if (h.kind !== "file") continue;
-      gps.nomi.add(n.toLowerCase());
+      nomi.add(n.toLowerCase());
       if (!/\.img$/i.test(n)) continue;
       const f = await h.getFile(), t = (await Unisci.contaTessere(f)) || 0;
-      gps.file.push({ n, dim: f.size, t }); gps.tessPer.set(n.toLowerCase(), t); gps.tessere += t;
+      file.push({ n, dim: f.size, t }); tessPer.set(n.toLowerCase(), t); tessere += t;
     }
+    if (giro !== gps.giro) return;                     // nel frattempo e' partita un'altra lettura: vale quella
+    gps.nomi = nomi; gps.tessPer = tessPer; gps.file = file; gps.tessere = tessere;
     gps.pronto = true;
   } catch (e) {
+    if (giro !== gps.giro) return;
+    gps.nomi = new Set(); gps.tessPer = new Map(); gps.file = []; gps.tessere = 0;
     testiGps();
     $("gps-pallino").classList.remove("on"); $("gps-lista").hidden = $("gps-azioni").hidden = true; $("gps-tot").textContent = "";
     disegna(); return;
