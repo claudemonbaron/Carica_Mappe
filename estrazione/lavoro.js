@@ -63,8 +63,7 @@ async function trova(parti) {
 }
 async function contenuto(f) {
   let errore = null;
-  for (const u of ["https://www.googleapis.com/download/drive/v3/files/" + f.id + "?alt=media",
-                   API + "/" + f.id + "?alt=media"]) {
+  for (const u of [API + "/" + f.id + "?alt=media&supportsAllDrives=true"]) {      // 19 nov: col permesso solo questo passa (CORS)
     try { return new Uint8Array(await (await driveGet(u)).arrayBuffer()); } catch (e) { errore = e; }
   }
   throw errore;
