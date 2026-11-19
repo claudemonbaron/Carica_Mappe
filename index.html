@@ -288,7 +288,7 @@ section { background: color-mix(in srgb, var(--panel) 90%, transparent) }
 <script>
 "use strict";
 // ---------------------------------------------------------------- impostazioni
-const VERSIONE = "2.3.1 (19 nov 2026)";   // 2.3.1: GPS letto una volta sola (file doppi). 2.3: Drive TopoRescue privato (permesso dal cancello Supabase). 2.2: logo TopoRescue Maps, schermata d'apertura, due colonne, Programmi consigliati
+const VERSIONE = "2.3.2 (19 nov 2026)";   // 2.3.2: file scaricati subito dall'indirizzo giusto. 2.3.1: GPS letto una volta sola (file doppi). 2.3: Drive TopoRescue privato (permesso dal cancello Supabase). 2.2: logo TopoRescue Maps, schermata d'apertura, due colonne, Programmi consigliati
 // 2.1:   // 2.1: Vista QMapShack (provinciali della zona + confinanti in una cartella, Chrome/Edge)
 // 2.0 (9 nov 2026):   // 2.0: lista GPX ("Seleziona GPX…") da copiare in Garmin/GPX insieme alla mappa (Chrome/Edge)
 // ---------------------------------------------------------------- lingua (2 nov 2026)
@@ -585,8 +585,9 @@ async function trova(parti) {
 }
 // Due indirizzi ufficiali per il contenuto dei file: il primo (download) ha retto anche quando l'altro rifiutava
 // tutti i download (22 ott sera, "Failed to fetch"); se uno non risponde si prova l'altro.
-const urlFiles = f => ["https://www.googleapis.com/download/drive/v3/files/" + f.id + "?alt=media",
-                       API + "/" + f.id + "?alt=media"];
+// 2.3.2: col permesso (Authorization) l'indirizzo /download/ non passa il controllo CORS del browser: si usa
+// direttamente quello delle API (prima si perdevano 3 tentativi e ~5 s per file, "Google non risponde, riprovo").
+const urlFiles = f => [API + "/" + f.id + "?alt=media&supportsAllDrives=true"];
 async function driveFile(f) {
   let errore = null;
   for (const u of urlFiles(f)) { try { return await driveGet(u, 3); } catch (e) { errore = e; } }
