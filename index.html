@@ -195,11 +195,12 @@ section { background: color-mix(in srgb, var(--panel) 90%, transparent) }
       <div class="piccolo" id="qms-passi" hidden>
         <b data-t="qmsPassiT">In QMapShack:</b>
         <ol>
-          <li data-t="qmsP1">Apri QMapShack (gratuito, per Mac e Windows).</li>
+          <li data-t="qmsP1">Apri QMapShack (gratuito, per Mac, Windows e Linux).</li>
           <li data-t="qmsP2">Menu File › Setup Map Paths (Imposta percorsi mappe): aggiungi la cartella appena scelta.</li>
           <li data-t="qmsP3">Nella finestra Mappe accendi le province della zona; quelle con «_confinante» nel nome lasciale spente o accendile se servono.</li>
+          <li data-t="qmsP4">Più comodo: l'app Carica Mappe per Mac, Windows e Linux apre QMapShack da sola con le mappe della zona («Apri selezione in QMapShack»).</li>
         </ol>
-        <a href="https://github.com/Maproom/qmapshack/releases" target="_blank" rel="noopener" data-t="qmsInst">Non hai QMapShack? Installalo da qui (Mac e Windows)</a>
+        <a href="https://github.com/Maproom/qmapshack/releases" target="_blank" rel="noopener" data-t="qmsInst">Non hai QMapShack? Installalo da qui (Mac, Windows e Linux)</a>
       </div>
     </div>
   </section>
@@ -288,7 +289,7 @@ section { background: color-mix(in srgb, var(--panel) 90%, transparent) }
 <script>
 "use strict";
 // ---------------------------------------------------------------- impostazioni
-const VERSIONE = "2.3.2 (19 nov 2026)";   // 2.3.2: file scaricati subito dall'indirizzo giusto. 2.3.1: GPS letto una volta sola (file doppi). 2.3: Drive TopoRescue privato (permesso dal cancello Supabase). 2.2: logo TopoRescue Maps, schermata d'apertura, due colonne, Programmi consigliati
+const VERSIONE = "2.3.3 (28 nov 2026)";   // 2.3.3: testi "Mac, Windows e Linux" (app Carica Mappe 2.0 anche per Linux). 2.3.2: file scaricati subito dall'indirizzo giusto. 2.3.1: GPS letto una volta sola (file doppi). 2.3: Drive TopoRescue privato (permesso dal cancello Supabase). 2.2: logo TopoRescue Maps, schermata d'apertura, due colonne, Programmi consigliati
 // 2.1:   // 2.1: Vista QMapShack (provinciali della zona + confinanti in una cartella, Chrome/Edge)
 // 2.0 (9 nov 2026):   // 2.0: lista GPX ("Seleziona GPX…") da copiare in Garmin/GPX insieme alla mappa (Chrome/Edge)
 // ---------------------------------------------------------------- lingua (2 nov 2026)
@@ -303,11 +304,11 @@ const I18N = {
   progQgis: ["Per aprire i progetti delle estrazioni (2D e 3D).", "To open the extraction projects (2D and 3D).",
              "Pour ouvrir les projets des extractions (2D et 3D).", "Um die Extraktionsprojekte zu öffnen (2D und 3D).",
              "Para abrir los proyectos de las extracciones (2D y 3D)."],
-  progNota: ["Gratuiti, per Mac e Windows. Su Windows, se l'installazione di QMapShack propone «MSVC++ Runtime», spuntalo.",
-             "Free, for Mac and Windows. On Windows, if the QMapShack installer offers «MSVC++ Runtime», tick it.",
-             "Gratuits, Mac et Windows. Sous Windows, si l'installation de QMapShack propose «MSVC++ Runtime», cochez-le.",
-             "Kostenlos, für Mac und Windows. Bietet die QMapShack-Installation unter Windows «MSVC++ Runtime» an, anhaken.",
-             "Gratuitos, para Mac y Windows. En Windows, si la instalación de QMapShack ofrece «MSVC++ Runtime», márcalo."],
+  progNota: ["Gratuiti, per Mac, Windows e Linux. Su Windows, se l'installazione di QMapShack propone «MSVC++ Runtime», spuntalo.",
+             "Free, for Mac, Windows and Linux. On Windows, if the QMapShack installer offers «MSVC++ Runtime», tick it.",
+             "Gratuits, Mac, Windows et Linux. Sous Windows, si l'installation de QMapShack propose «MSVC++ Runtime», cochez-le.",
+             "Kostenlos, für Mac, Windows und Linux. Bietet die QMapShack-Installation unter Windows «MSVC++ Runtime» an, anhaken.",
+             "Gratuitos, para Mac, Windows y Linux. En Windows, si la instalación de QMapShack ofrece «MSVC++ Runtime», márcalo."],
   progScarica: ["Scarica", "Download", "Télécharger", "Herunterladen", "Descargar"],
 
   qmsTit: ["Mappe di zona per QMapShack (sul computer)", "Zone maps for QMapShack (on the computer)", "Cartes de zone pour QMapShack (sur l'ordinateur)", "Gebietskarten für QMapShack (am Computer)", "Mapas de zona para QMapShack (en el ordenador)"],
@@ -316,7 +317,12 @@ const I18N = {
               "Télécharge dans un dossier de l'ordinateur les cartes provinciales de la zone choisie ci-dessus et des provinces voisines, pour les voir dans QMapShack.",
               "Lädt die Provinzkarten des oben gewählten Gebiets und der Nachbarprovinzen in einen Ordner am Computer, um sie in QMapShack zu sehen.",
               "Descarga en una carpeta del ordenador los mapas provinciales de la zona elegida arriba y de las provincias limítrofes, para verlos en QMapShack."],
-  qmsProv: ["Provincia scelta", "Chosen province", "Province choisie", "Gewählte Provinz", "Provincia elegida"],
+  qmsP4: ["Più comodo: l'app Carica Mappe per Mac, Windows e Linux apre QMapShack da sola con le mappe della zona («Apri selezione in QMapShack»).",
+         "Easier: the Carica Mappe app for Mac, Windows and Linux opens QMapShack by itself with the area's maps («Apri selezione in QMapShack»).",
+         "Plus simple : l'appli Carica Mappe pour Mac, Windows et Linux ouvre QMapShack toute seule avec les cartes de la zone (« Apri selezione in QMapShack »).",
+         "Einfacher: die App Carica Mappe für Mac, Windows und Linux öffnet QMapShack selbst mit den Karten des Gebiets („Apri selezione in QMapShack“).",
+         "Más cómodo: la app Carica Mappe para Mac, Windows y Linux abre QMapShack sola con los mapas de la zona («Apri selezione in QMapShack»)."],
+ qmsProv: ["Provincia scelta", "Chosen province", "Province choisie", "Gewählte Provinz", "Provincia elegida"],
   qmsReg: ["Regione / paese intero", "Whole region / country", "Région / pays entier", "Ganze Region / ganzes Land", "Región / país entero"],
   qmsConf: ["+ province confinanti", "+ neighbouring provinces", "+ provinces voisines", "+ Nachbarprovinzen", "+ provincias limítrofes"],
   qmsBtn: ["Scarica per QMapShack…", "Download for QMapShack…", "Télécharger pour QMapShack…", "Für QMapShack herunterladen…", "Descargar para QMapShack…"],
@@ -329,8 +335,8 @@ const I18N = {
   qmsFatto: ["Fatto: {0} mappe nella cartella «{1}».", "Done: {0} maps in folder «{1}».", "Terminé : {0} cartes dans le dossier «{1}».",
              "Fertig: {0} Karten im Ordner «{1}».", "Hecho: {0} mapas en la carpeta «{1}»."],
   qmsPassiT: ["In QMapShack:", "In QMapShack:", "Dans QMapShack :", "In QMapShack:", "En QMapShack:"],
-  qmsP1: ["Apri QMapShack (gratuito, per Mac e Windows).", "Open QMapShack (free, for Mac and Windows).", "Ouvrez QMapShack (gratuit, Mac et Windows).",
-          "QMapShack öffnen (kostenlos, für Mac und Windows).", "Abre QMapShack (gratuito, para Mac y Windows)."],
+  qmsP1: ["Apri QMapShack (gratuito, per Mac, Windows e Linux).", "Open QMapShack (free, for Mac, Windows and Linux).", "Ouvrez QMapShack (gratuit, Mac, Windows et Linux).",
+          "QMapShack öffnen (kostenlos, für Mac, Windows und Linux).", "Abre QMapShack (gratuito, para Mac, Windows y Linux)."],
   qmsP2: ["Menu File › Setup Map Paths (Imposta percorsi mappe): aggiungi la cartella appena scelta.",
           "Menu File › Setup Map Paths: add the folder you just chose.", "Menu File › Setup Map Paths : ajoutez le dossier choisi.",
           "Menü File › Setup Map Paths: den eben gewählten Ordner hinzufügen.", "Menú File › Setup Map Paths: añade la carpeta elegida."],
@@ -339,9 +345,9 @@ const I18N = {
           "Dans la fenêtre Cartes allumez les provinces de la zone ; laissez éteintes celles avec «_confinante» dans le nom, ou allumez-les au besoin.",
           "Im Fenster Karten die Provinzen des Gebiets einschalten; die mit «_confinante» im Namen aus lassen oder bei Bedarf einschalten.",
           "En la ventana Mapas enciende las provincias de la zona; deja apagadas las que llevan «_confinante» en el nombre, o enciéndelas si hacen falta."],
-  qmsInst: ["Non hai QMapShack? Installalo da qui (Mac e Windows)", "No QMapShack? Install it from here (Mac and Windows)",
-            "Pas de QMapShack ? Installez-le d'ici (Mac et Windows)", "Kein QMapShack? Hier installieren (Mac und Windows)",
-            "¿No tienes QMapShack? Instálalo desde aquí (Mac y Windows)"],
+  qmsInst: ["Non hai QMapShack? Installalo da qui (Mac, Windows e Linux)", "No QMapShack? Install it from here (Mac, Windows and Linux)",
+            "Pas de QMapShack ? Installez-le d'ici (Mac, Windows et Linux)", "Kein QMapShack? Hier installieren (Mac, Windows und Linux)",
+            "¿No tienes QMapShack? Instálalo desde aquí (Mac, Windows y Linux)"],
   gpxTit: ["Tracce GPX", "GPX tracks", "Traces GPX", "GPX-Tracks", "Tracks GPX"],
   selGpx: ["Seleziona GPX…", "Select GPX…", "Sélectionner GPX…", "GPX auswählen…", "Seleccionar GPX…"],
   svuotaGpx: ["Svuota lista", "Clear list", "Vider la liste", "Liste leeren", "Vaciar lista"],
